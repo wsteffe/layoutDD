@@ -35,15 +35,16 @@ def registerToolbarItems():
 
   act = pya.Action()
   act.title = "DD"
+  actions.append(act)
   menu.insert_item("@toolbar.end", "DD", act)
 #  act.icon = path
 
-  act = pya.Action()
-  act.title = "importPCB"
+#  act = pya.Action()
+#  act.title = "importPCB"
 #  act.on_triggered(importPCB)
-  menu.insert_item("@toolbar.DD.end", "importPCB", act)
-  actions.append(act)
-  menu.insert_item("..", "..", act)
+#  menu.insert_item("@toolbar.DD.end", "importPCB", act)
+#  actions.append(act)
+#  menu.insert_item("..", "..", act)
 
   act = pya.Action()
   act.title = "mapLayers"
