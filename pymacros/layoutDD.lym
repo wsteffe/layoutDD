@@ -13,17 +13,25 @@
  <dsl-interpreter-name/>
  <text># This is the new macro created with the sample macro package
 
+
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), "Mod"))
+
+
 pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
 
 
-actions = []
 menu = pya.Application.instance().main_window().menu()
 
+
+import mapLayers
+
+actions = []
 
 def registerToolbarItems():
 
   global actions, menu
-
 
   act = pya.Action()
   act.title = "DD"
@@ -32,7 +40,15 @@ def registerToolbarItems():
 
   act = pya.Action()
   act.title = "importPCB"
+#  act.on_triggered(importPCB)
   menu.insert_item("@toolbar.DD.end", "importPCB", act)
+  actions.append(act)
+  menu.insert_item("..", "..", act)
+
+  act = pya.Action()
+  act.title = "mapLayers"
+  act.on_triggered(mapLayers)
+  menu.insert_item("@toolbar.DD.end", "mapLayers", act)
   actions.append(act)
   menu.insert_item("..", "..", act)
 
