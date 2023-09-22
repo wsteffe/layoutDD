@@ -8,7 +8,7 @@ def registerToolbarItems():
   
   import os
   from  importlib import reload 
-  from . import importDXF, saveActiveCell
+  from . import importDXF
   reload(importDXF)
 
   menu = pya.Application.instance().main_window().menu()
@@ -25,11 +25,11 @@ def registerToolbarItems():
   ACTIONS.append(act)
 
 
-  act = pya.Action()
-  act.title = "Save Active Cell"
-  act.on_triggered(saveActiveCell.saveActiveCell)
-  menu.insert_item(s1+".ImportDXF+", "SaveActiveCell", act)
-  ACTIONS.append(act)
+#  act = pya.Action()
+#  act.title = "Save Active Cell"
+#  act.on_triggered(saveActiveCell.saveActiveCell)
+#  menu.insert_item(s1+".ImportDXF+", "SaveActiveCell", act)
+#  ACTIONS.append(act)
 
 
 
