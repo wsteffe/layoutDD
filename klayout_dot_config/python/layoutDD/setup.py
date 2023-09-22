@@ -8,8 +8,8 @@ def registerToolbarItems():
   
   import os
   from  importlib import reload 
-  from . import mapLayers
-  reload(mapLayers)
+  from . import importPCB
+  reload(importPCB)
 
   menu = pya.Application.instance().main_window().menu()
   act = pya.Action()
@@ -19,9 +19,9 @@ def registerToolbarItems():
      menu.insert_menu("help_menu", s1, "layoutDD")
 
   act = pya.Action()
-  act.title = "mapLayers"
-  act.on_triggered(mapLayers.mapLayers)
-  menu.insert_item(s1+".begin", "mapLayers", act)
+  act.title = "import PCB"
+  act.on_triggered(importPCB.importPCB)
+  menu.insert_item(s1+".begin", "import PCB", act)
   ACTIONS.append(act)
 
 

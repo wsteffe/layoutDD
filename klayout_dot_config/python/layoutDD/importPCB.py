@@ -1,5 +1,4 @@
 import pya
-mainWindow = pya.Application.instance().main_window()
 
 def loadLayout(layoutView, path = None, lockLayers = False):
     cellViewId = layoutView.load_layout(path, 2) if path else layoutView.create_layout(2)
@@ -11,8 +10,9 @@ def loadLayout(layoutView, path = None, lockLayers = False):
 
 def importPCB():
     from . import mapLayers
-    dxfPath      = r"....\KaIMUX-PCB.dxf"
+    dxfPath = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "DXF (*.dxf)")
+    mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())
     dxfCellView  = loadLayout(layoutView, path = dxfPath, lockLayers = True)
-    mapLayers()
+    mapLayers.mapLayers()
 
