@@ -16,8 +16,6 @@
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), "Mod"))
-
 
 pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
 
@@ -25,36 +23,9 @@ pya.MessageBox.info("Information", "This is the new macro created with the sampl
 menu = pya.Application.instance().main_window().menu()
 
 
-import mapLayers
+from layoutDD import setup
 
-actions = []
-
-def registerToolbarItems():
-
-  global actions, menu
-
-  act = pya.Action()
-  act.title = "DD"
-  actions.append(act)
-  menu.insert_item("@toolbar.end", "DD", act)
-#  act.icon = path
-
-#  act = pya.Action()
-#  act.title = "importPCB"
-#  act.on_triggered(importPCB)
-#  menu.insert_item("@toolbar.DD.end", "importPCB", act)
-#  actions.append(act)
-#  menu.insert_item("..", "..", act)
-
-  act = pya.Action()
-  act.title = "mapLayers"
-  act.on_triggered(mapLayers)
-  menu.insert_item("@toolbar.DD.end", "mapLayers", act)
-  actions.append(act)
-  menu.insert_item("..", "..", act)
-
-
-registerToolbarItems()
+setup.registerToolbarItems()
 
 # In order pull in classes from other packages, just specify these classes
 # in the dependencies of this package. Provided those packages contain macros

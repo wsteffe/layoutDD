@@ -7,7 +7,9 @@ def registerToolbarItems():
   global ACTIONS
   
   import os
+  from  importlib import reload 
   from . import mapLayers
+  reload(mapLayers)
 
   menu = pya.Application.instance().main_window().menu()
   act = pya.Action()
