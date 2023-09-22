@@ -8,7 +8,7 @@ def loadLayout(layoutView, path = None, lockLayers = False):
             lyp.valid = False
     return cellView
 
-def importPCB():
+def importDXF():
     from . import mapLayers
     dxfPath = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "DXF (*.dxf)")
     mainWindow   = pya.Application.instance().main_window()

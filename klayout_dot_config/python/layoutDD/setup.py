@@ -8,8 +8,8 @@ def registerToolbarItems():
   
   import os
   from  importlib import reload 
-  from . import importPCB
-  reload(importPCB)
+  from . import importDXF
+  reload(importDXF)
 
   menu = pya.Application.instance().main_window().menu()
   act = pya.Action()
@@ -19,9 +19,9 @@ def registerToolbarItems():
      menu.insert_menu("help_menu", s1, "layoutDD")
 
   act = pya.Action()
-  act.title = "import PCB"
-  act.on_triggered(importPCB.importPCB)
-  menu.insert_item(s1+".begin", "import PCB", act)
+  act.title = "import DXF"
+  act.on_triggered(importDXF.importDXF)
+  menu.insert_item(s1+".begin", "import DXF", act)
   ACTIONS.append(act)
 
 
