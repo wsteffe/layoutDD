@@ -1,11 +1,4 @@
 
-#mapping = { 
-#    "L0D0_0"     : [ 0, 0],
-#    "STICH-VIAS" : [10, 0],
-#    "BOTTOM"     : [11, 0],
-#    "TOP"        : [12, 0],
-#    "RESISTANCE" : [13, 0],
-#}
 
 import pya
 
