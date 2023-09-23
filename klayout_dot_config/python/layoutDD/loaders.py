@@ -1,6 +1,7 @@
 import pya
 
 def importDXF():
+    import os
     from . import mapLayers, saveActiveCell
     dxfPath = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "DXF (*.dxf)")
     mainWindow   = pya.Application.instance().main_window()
@@ -11,6 +12,8 @@ def importDXF():
 #        lyp.valid = False
     mapLayers.mapLayers()
     saveActiveCell.saveActiveCell()
+    if not os.path.exists("Partition"): 
+        os.makedirs("Partition")
 
 def openProject():
     gdsPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "GDS2 (*.gds)")

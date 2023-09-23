@@ -10,6 +10,8 @@ def registerToolbarItems():
   from  importlib import reload 
   from . import loaders
   reload(loaders)
+  from . import subdomains
+  reload(subdomains)
 
   menu = pya.Application.instance().main_window().menu()
   act = pya.Action()
@@ -24,12 +26,18 @@ def registerToolbarItems():
   menu.insert_item(s1+".begin", "ImportDXF", act)
   ACTIONS.append(act)
 
-
   act = pya.Action()
   act.title = "Open DD Project"
   act.on_triggered(loaders.openProject)
   menu.insert_item(s1+".ImportDXF+", "openProject", act)
   ACTIONS.append(act)
+
+  act = pya.Action()
+  act.title = "Create New Region"
+  act.on_triggered(subdomains.newRegion)
+  menu.insert_item(s1+".openProject+", "newRegion", act)
+  ACTIONS.append(act)
+
 
 
 
