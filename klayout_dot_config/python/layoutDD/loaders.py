@@ -16,6 +16,7 @@ def importDXF():
         os.makedirs("Partition")
 
 def openProject():
+    import os
     gdsPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "GDS2 (*.gds)")
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())
@@ -23,5 +24,16 @@ def openProject():
     cellView     = layoutView.cellview(cellViewId)
     lypPath      = gdsPath.split(".")[0]+".lyp"
     layoutView.load_layer_props(lypPath)
+    MAX_REGION_INDEX=0
+    if os.path.exists('Partition/MAX_REGION_INDEX'): 
+        with open('Partition/MAX_REGION_INDEX','r') as f:
+            MAX_REGION_INDEX=int(f.readline())
+    for I in range(MAX_REGION_INDEX):
+        path=f"Partition/Region_{I+1}.gds"
+        if os.path.exists(path):
+            layoutView.load_layout(path,2)
+
+
+
 
 
