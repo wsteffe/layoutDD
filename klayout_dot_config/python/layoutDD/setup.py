@@ -8,8 +8,8 @@ def registerToolbarItems():
   
   import os
   from  importlib import reload 
-  from . import importDXF
-  reload(importDXF)
+  from . import loaders
+  reload(loaders)
 
   menu = pya.Application.instance().main_window().menu()
   act = pya.Action()
@@ -20,14 +20,14 @@ def registerToolbarItems():
 
   act = pya.Action()
   act.title = "import DXF"
-  act.on_triggered(importDXF.importDXF)
+  act.on_triggered(loaders.importDXF)
   menu.insert_item(s1+".begin", "ImportDXF", act)
   ACTIONS.append(act)
 
 
   act = pya.Action()
   act.title = "Open DD Project"
-  act.on_triggered(importDXF.openProject)
+  act.on_triggered(loaders.openProject)
   menu.insert_item(s1+".ImportDXF+", "openProject", act)
   ACTIONS.append(act)
 

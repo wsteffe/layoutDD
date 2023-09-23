@@ -17,7 +17,7 @@
 import sys
 import os
 
-pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
+#pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
 
 
 menu = pya.Application.instance().main_window().menu()
