@@ -25,11 +25,11 @@ def registerToolbarItems():
   ACTIONS.append(act)
 
 
-#  act = pya.Action()
-#  act.title = "Save Active Cell"
-#  act.on_triggered(saveActiveCell.saveActiveCell)
-#  menu.insert_item(s1+".ImportDXF+", "SaveActiveCell", act)
-#  ACTIONS.append(act)
+  act = pya.Action()
+  act.title = "Open DD Project"
+  act.on_triggered(importDXF.openProject)
+  menu.insert_item(s1+".ImportDXF+", "openProject", act)
+  ACTIONS.append(act)
 
 
 
