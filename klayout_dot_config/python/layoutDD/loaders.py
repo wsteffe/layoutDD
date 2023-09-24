@@ -3,10 +3,11 @@ import pya
 def importDXF():
     import os
     from . import mapLayers, saveActiveCell
-    dxfPath = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "DXF (*.dxf)")
+    dxfPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "DXF (*.dxf)")
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())
-    cellViewId   = layoutView.load_layout(dxfPath, 2)
+    option       = pya.LoadLayoutOptions()
+    cellViewId   = layoutView.load_layout(dxfPath,option, 2)
     cellView     = layoutView.cellview(cellViewId)
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
