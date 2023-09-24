@@ -13,8 +13,19 @@ def importDXF():
 #        lyp.valid = False
     mapLayers.mapLayers()
     saveActiveCell.saveActiveCell()
-    if not os.path.exists("Partition"): 
-        os.makedirs("Partition")
+    partitionPath="partition.gds"
+    if not os.path.exists(partitionPath): 
+      cellView   = mainWindow.create_layout(2)
+      cellIndex  = cellView.index()
+      cellLayout = cellView.layout()
+      option     = pya.SaveLayoutOptions()
+      layoutView = mainWindow.current_view()
+      layoutView.save_as(cellIndex,partitionPath, option)
+      MAX_REGION_INDEX=0
+      with open('MAX_REGION_INDEX','w') as f:
+        f.write(f'{MAX_REGION_INDEX}\n')
+    else:
+      layoutView.load_layout(partitionPath,2)
 
 def openProject():
     import os
@@ -26,13 +37,9 @@ def openProject():
     lypPath      = gdsPath.split(".")[0]+".lyp"
     layoutView.load_layer_props(lypPath)
     MAX_REGION_INDEX=0
-    if os.path.exists('Partition/MAX_REGION_INDEX'): 
-        with open('Partition/MAX_REGION_INDEX','r') as f:
-            MAX_REGION_INDEX=int(f.readline())
-    for I in range(MAX_REGION_INDEX):
-        path=f"Partition/Region_{I+1}.gds"
-        if os.path.exists(path):
-            layoutView.load_layout(path,2)
+    partitionPath="partition.gds"
+    if os.path.exists(partitionPath):
+        layoutView.load_layout(partitionPath,2)
 
 
 
