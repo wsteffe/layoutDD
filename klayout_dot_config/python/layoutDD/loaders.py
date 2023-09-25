@@ -6,8 +6,9 @@ def importDXF():
     dxfPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "DXF (*.dxf)")
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())
-    option       = pya.LoadLayoutOptions()
-    cellViewId   = layoutView.load_layout(dxfPath,option, 2)
+#    option       = pya.LoadLayoutOptions()
+#    cellViewId   = layoutView.load_layout(dxfPath,option, 2)
+    cellViewId   = layoutView.load_layout(dxfPath,'PCB')
     cellView     = layoutView.cellview(cellViewId)
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
