@@ -8,7 +8,7 @@ def importDXF():
     layoutView   = mainWindow.view(mainWindow.create_view())
 #    option       = pya.LoadLayoutOptions()
 #    cellViewId   = layoutView.load_layout(dxfPath,option, 2)
-    cellViewId   = layoutView.load_layout(dxfPath,'PCB')
+    cellViewId   = layoutView.load_layout(dxfPath,"PCB")
     cellView     = layoutView.cellview(cellViewId)
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
