@@ -38,6 +38,13 @@ def registerToolbarItems():
   menu.insert_item(s1+".openProject+", "newRegion", act)
   ACTIONS.append(act)
 
+  act = pya.Action()
+  act.title = "Make Subdomain"
+  act.on_triggered(subdomains.makeSubdomain)
+  menu.insert_item(s1+".newRegion+", "makeSubdomain", act)
+  ACTIONS.append(act)
+
+
 
 
 

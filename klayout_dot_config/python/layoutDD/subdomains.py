@@ -20,3 +20,30 @@ def newRegion():
     layoutView   = mainWindow.current_view()
     layoutView.add_missing_layers()
     layoutView.save_as(cellViewI,f"partition.gds", option)
+
+
+def copyVisibleLayers(layoutView):
+    mainCellView   = layoutView.cellview(0)
+    mainCellViewId = mainCellView.index()
+    cellView       = layoutView.active_cellview()
+    cellViewId     = cellView.index()
+    if cellViewId==mainCellViewId:
+        return
+    mainLayout= mainCellView.layout()
+    cellLayout= cellView.layout()
+    for lyp in layoutView.each_layer():
+       if lyp.cellview()==mainCellViewId and lyp.visible:
+          lid = lyp.layer_index()
+          lif = mainLayout.get_info(lid)
+          ln,dt = lif.layer, lif.datatype
+          cell_lid = cellLayout.layer(ln, dt)
+          cell_lif=cellLayout.get_info(cell_lid)
+          print("lif.name="+lif.name)
+          cell_lif.name=lif.name
+          cellLayout.set_info(cell_lid,cell_lif)
+    layoutView.add_missing_layers()
+
+def makeSubdomain():
+    layoutView  = pya.Application.instance().main_window().current_view()
+    copyVisibleLayers(layoutView)
+
