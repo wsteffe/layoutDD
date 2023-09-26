@@ -42,7 +42,7 @@ def mapLayers():
             lid = lyp.layer_index()
             lnm = lyp.source_name
             if lnm in layerMap:
-                lno, ldt = layerMap[ lnm ]
+                lno, ldt = layerMap[lnm]
                 layout.set_info(lid, pya.LayerInfo(lno, ldt, lnm))
         itr.next()
     cleanLayers(layoutView,cellView)

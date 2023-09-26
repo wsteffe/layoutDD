@@ -41,8 +41,11 @@ def openProject():
     layoutView.load_layer_props(lypPath)
     MAX_REGION_INDEX=0
     partitionPath="partition.gds"
+    partitionLypPath="partition.lyp"
     if os.path.exists(partitionPath):
         layoutView.load_layout(partitionPath,2)
+        if os.path.exists(partitionLypPath):
+           layoutView.load_layer_props(partitionLypPath,cellViewId)
 
 
 

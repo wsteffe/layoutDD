@@ -23,6 +23,7 @@ def newRegion():
 
 
 def copyVisibleLayers(layoutView):
+    from . import saveActiveCell
     mainCellView   = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
     cellView       = layoutView.active_cellview()
@@ -37,11 +38,11 @@ def copyVisibleLayers(layoutView):
           lif = mainLayout.get_info(lid)
           ln,dt = lif.layer, lif.datatype
           cell_lid = cellLayout.layer(ln, dt)
-          cell_lif=cellLayout.get_info(cell_lid)
-          print("lif.name="+lif.name)
-          cell_lif.name=lif.name
+          cell_lif = cellLayout.get_info(cell_lid)
+          cell_lif.name= lyp.source_name
           cellLayout.set_info(cell_lid,cell_lif)
     layoutView.add_missing_layers()
+    saveActiveCell.saveActiveCell()
 
 def makeSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()

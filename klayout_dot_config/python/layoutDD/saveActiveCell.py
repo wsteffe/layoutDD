@@ -8,14 +8,13 @@ def saveActiveCell():
     cellIndex     = cellView.index()
     filePathSeg   = cellView.active().filename().replace("\\", "/").split("/")
     path          = "/".join(filePathSeg[0:-1])
-    name          = filePathSeg[-1].split(".")[0]
-    folderPath    = f"{path}/"
+    fname          = filePathSeg[-1].split(".")[0]
     option        = pya.SaveLayoutOptions()
     option.format = "GDS2"
     option.select_all_layers()
 
     if cell:
-        layoutView.save_as(cellIndex,f"{folderPath}/{name}.gds", option)
-        layoutView.save_layer_props(f"{folderPath}/{name}.lyp")
+        layoutView.save_as(cellIndex,f"{fname}.gds", option)
+        layoutView.save_layer_props(f"{fname}.lyp")
 
 
