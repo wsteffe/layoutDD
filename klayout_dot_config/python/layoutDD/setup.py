@@ -21,15 +21,15 @@ def registerToolbarItems():
      menu.insert_menu("help_menu", s1, "layoutDD")
 
   act = pya.Action()
-  act.title = "import DXF"
-  act.on_triggered(loaders.importDXF)
-  menu.insert_item(s1+".begin", "ImportDXF", act)
+  act.title = "Import Layout"
+  act.on_triggered(loaders.importLayout)
+  menu.insert_item(s1+".begin", "ImportLayout", act)
   ACTIONS.append(act)
 
   act = pya.Action()
   act.title = "Open DD Project"
   act.on_triggered(loaders.openProject)
-  menu.insert_item(s1+".ImportDXF+", "openProject", act)
+  menu.insert_item(s1+".ImportLayout+", "openProject", act)
   ACTIONS.append(act)
 
   act = pya.Action()
