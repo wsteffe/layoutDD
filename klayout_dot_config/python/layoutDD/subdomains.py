@@ -41,6 +41,8 @@ def copyVisibleLayers(layoutView):
           lid = lyp.layer_index()
           lif = mainLayout.get_info(lid)
           ln,dt = lif.layer, lif.datatype
+          if (ln,dt)==(0,0):
+             continue
           cellv_lid = cellLayout.layer(ln, dt)
           cellv_lif = cellLayout.get_info(cellv_lid)
           cellv_lif.name= lyp.source_name
