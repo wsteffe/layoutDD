@@ -32,15 +32,21 @@ def copyVisibleLayers(layoutView):
         return
     mainLayout= mainCellView.layout()
     cellLayout= cellView.layout()
+    cell = cellView.cell
+    cellLy0Id=cell.layout().layer(0, 0)
+    clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy0Id)]
+    cell.clear(cellLy0Id)
     for lyp in layoutView.each_layer():
        if lyp.cellview()==mainCellViewId and lyp.visible:
           lid = lyp.layer_index()
           lif = mainLayout.get_info(lid)
           ln,dt = lif.layer, lif.datatype
-          cell_lid = cellLayout.layer(ln, dt)
-          cell_lif = cellLayout.get_info(cell_lid)
-          cell_lif.name= lyp.source_name
-          cellLayout.set_info(cell_lid,cell_lif)
+          cellv_lid = cellLayout.layer(ln, dt)
+          cellv_lif = cellLayout.get_info(cellv_lid)
+          cellv_lif.name= lyp.source_name
+          cellLayout.set_info(cellv_lid,cellv_lif)
+          for poly in clypPolygons:
+             cell.shapes(cellv_lid).insert(poly)
     layoutView.add_missing_layers()
     saveActiveCell.saveActiveCell()
 
