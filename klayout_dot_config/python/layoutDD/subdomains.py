@@ -33,15 +33,20 @@ def copyVisibleLayers(layoutView):
     mainLayout= mainCellView.layout()
     cellLayout= cellView.layout()
     cell = cellView.cell
-    cellLy0Id=cell.layout().layer(0, 0)
-    clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy0Id)]
-    cell.clear(cellLy0Id)
+    cellLy00Id=cell.layout().layer(0,0)
+    clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy00Id)]
+    cell.clear(cellLy00Id)
+    cellLy01Id=cell.layout().layer(0,1)
+    for poly in clypPolygons:
+        cell.shapes(cellLy01Id).insert(poly)
     for lyp in layoutView.each_layer():
        if lyp.cellview()==mainCellViewId and lyp.visible:
           lid = lyp.layer_index()
           lif = mainLayout.get_info(lid)
           ln,dt = lif.layer, lif.datatype
-          if (ln,dt)==(0,0):
+          if (ln,dt)==(0,1):
+             lyp.visible=False
+          if ln==0:
              continue
           cellv_lid = cellLayout.layer(ln, dt)
           cellv_lif = cellLayout.get_info(cellv_lid)
@@ -56,3 +61,35 @@ def makeSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
     copyVisibleLayers(layoutView)
 
+def deleteCellLayers(layoutView):
+    copyVisibleLayers(layoutView)
+    from . import saveActiveCell
+    mainCellView   = layoutView.cellview(0)
+    mainCellViewId = mainCellView.index()
+    cellView       = layoutView.active_cellview()
+    cellViewId     = cellView.index()
+    if cellViewId==mainCellViewId:
+        return
+    mainLayout= mainCellView.layout()
+    cellLayout= cellView.layout()
+    cell = cellView.cell
+    cellLy01Id=cell.layout().layer(0,1)
+    clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy01Id)]
+    cell.clear(cellLy01Id)
+    cellLy00Id=cell.layout().layer(0,0)
+    for poly in clypPolygons:
+        cell.shapes(cellLy00Id).insert(poly)
+    for lyp in layoutView.each_layer():
+       if lyp.cellview()==cellViewId:
+          lid = lyp.layer_index()
+          lif = cellLayout.get_info(lid)
+          ln,dt = lif.layer, lif.datatype
+          if ln==0:
+             continue
+          cellv_lid = cellLayout.layer(ln, dt)
+          cell.clear(cellv_lid)
+    saveActiveCell.saveActiveCell()
+
+def deleteSubdomain():
+    layoutView  = pya.Application.instance().main_window().current_view()
+    deleteCellLayers(layoutView)

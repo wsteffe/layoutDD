@@ -44,6 +44,13 @@ def registerToolbarItems():
   menu.insert_item(s1+".newRegion+", "makeSubdomain", act)
   ACTIONS.append(act)
 
+  act = pya.Action()
+  act.title = "Delete Subdomain"
+  act.on_triggered(subdomains.deleteSubdomain)
+  menu.insert_item(s1+".makeSubdomain+", "deleteSubdomain", act)
+  ACTIONS.append(act)
+
+
 
 
 
