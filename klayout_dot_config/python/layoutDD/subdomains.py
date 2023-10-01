@@ -116,6 +116,9 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
     exporter = mainDoc.export("Subdomains/"+cell.name+'.dxf')
     msp=mainDoc.modelspace()
     extractedTypes=["LINE","POINT","VERTEX","POLYLINE","LWPOLYLINE","SPLINE","CIRCLE","ARC","ELLIPSE"]
+    tech_name = "PCB"
+    tech=pya.Technology.technology_by_name(tech_name)
+    options=tech.load_layout_options
     try:
       for entity in msp:
          if not entity.dxf.hasattr("layer"):
@@ -125,10 +128,12 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
               bb = bbox.extents([entity])
               ll=bb.extmin
               ur=bb.extmax
-              kbb= pya.Box(ll[0],ll[1],ur[0],ur[1])
+              fac=options.dxf_unit
+              kbb= pya.Box(ll[0]*fac,ll[1]*fac,ur[0]*fac,ur[1]*fac)
               polyShapes=cellLayerShapes[entity.dxf.layer]
-              overlapPoly=[poly for poly in polyShapes.each_overlapping(kbb)]
-              if len(overlapPoly)>0:
+              polyNum=len(polyShapes)
+              touchPoly=[poly for poly in polyShapes.each_touching(kbb)]
+              if len(touchPoly)>0:
                  exporter.write(entity)
     finally:
       exporter.close()
