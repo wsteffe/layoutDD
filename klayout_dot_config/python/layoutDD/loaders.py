@@ -3,15 +3,14 @@ import pya
 def saveFlatDXF(fname):
     import ezdxf
     from ezdxf import disassemble
-    doc0 = ezdxf.readfile(fname+".dxf")
-    msp0=doc0.modelspace()
-    doc=ezdxf.new()
-    msp = doc.modelspace()
-    exploded=disassemble.recursive_decompose(msp0)
-    for entity in exploded:
-      msp.add_entity(entity)
-    doc.saveas(fname+"_flat.dxf")
-
+    from ezdxf.addons import Importer
+    sdoc = ezdxf.readfile(fname+".dxf")
+    tdoc = ezdxf.new()
+    importer = Importer(sdoc,tdoc)
+    smsp= sdoc.modelspace()
+    exploded=disassemble.recursive_decompose(smsp)
+    importer.import_entities(exploded)
+    tdoc.saveas(fname+"_flat.dxf")
 
 def importLayout():
     import os

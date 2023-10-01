@@ -123,8 +123,13 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
          if entity.dxf.layer in cellLayerShapes:
             if entity.dxftype() in extractedTypes:
               bb = bbox.extents([entity])
-              print(bb.extmin)
-              exporter.write(entity)
+              ll=bb.extmin
+              ur=bb.extmax
+              kbb= pya.Box(ll[0],ll[1],ur[0],ur[1])
+              polyShapes=cellLayerShapes[entity.dxf.layer]
+              overlapPoly=[poly for poly in polyShapes.each_overlapping(kbb)]
+              if len(overlapPoly)>0:
+                 exporter.write(entity)
     finally:
       exporter.close()
       mainDoc.close()
