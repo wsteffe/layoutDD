@@ -93,6 +93,7 @@ def getCellLayerShapes(layoutView):
           cellLayerShapes[lif.name]=cell.shapes(lid)
     return cellLayerShapes
 
+
 def extractSubdomainDXF(layoutView,cellLayerShapes):
     from ezdxf.addons import iterdxf
     from ezdxf import bbox
@@ -111,32 +112,22 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
     cellFilePath      = cellView.active().filename()
     cellFilePathSeg   = cellFilePath.replace("\\", "/").split("/")
     cellFname         = cellFilePathSeg[-1].split(".")[0]
-    mainDoc = iterdxf.opendxf(mainFname+'.dxf')
-    subdom_exporter = mainDoc.export("Subdomains/"+cell.name+'.dxf')
+    mainDoc = iterdxf.opendxf(mainFname+'_flat.dxf')
+    exporter = mainDoc.export("Subdomains/"+cell.name+'.dxf')
+    msp=mainDoc.modelspace()
+    extractedTypes=["LINE","POINT","VERTEX","POLYLINE","LWPOLYLINE","SPLINE","CIRCLE","ARC","ELLIPSE"]
     try:
-      for entity in mainDoc.modelspace():
+      for entity in msp:
          if not entity.dxf.hasattr("layer"):
              continue
          if entity.dxf.layer in cellLayerShapes:
-            if entity.dxftype() == 'LINE':
+            if entity.dxftype() in extractedTypes:
               bb = bbox.extents([entity])
               print(bb.extmin)
-              subdom_exporter.write(entity)
-            elif entity.dxftype() == 'POLYLINE':
-              bb = bbox.extents([entity])
-              print(bb.extmin)
-              subdom_exporter.write(entity)
-            if entity.dxftype() == 'CIRCLE':
-              bb = bbox.extents([entity])
-              print(bb.extmin)
-              subdom_exporter.write(entity)
-            if entity.dxftype() == 'ELLIPSE':
-              subdom_exporter.write(entity)
-            elif entity.dxftype() == 'TEXT':
-              subdom_exporter.write(entity)
+              exporter.write(entity)
     finally:
-       subdom_exporter.close()
-       mainDoc.close()
+      exporter.close()
+      mainDoc.close()
 
 def makeSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()

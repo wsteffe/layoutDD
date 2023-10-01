@@ -1,5 +1,18 @@
 import pya
 
+def saveFlatDXF(fname):
+    import ezdxf
+    from ezdxf import disassemble
+    doc0 = ezdxf.readfile(fname+".dxf")
+    msp0=doc0.modelspace()
+    doc=ezdxf.new()
+    msp = doc.modelspace()
+    exploded=disassemble.recursive_decompose(msp0)
+    for entity in exploded:
+      msp.add_entity(entity)
+    doc.saveas(fname+"_flat.dxf")
+
+
 def importLayout():
     import os
     from . import mapLayers, saveActiveCell
@@ -10,12 +23,13 @@ def importLayout():
     cellView      = layoutView.active_cellview()
     filePath      = cellView.active().filename()
     filePathSeg   = filePath.replace("\\", "/").split("/")
-    fileExt       = filePathSeg[-1].split(".")[1]
+    fname,fext    = os.path.splitext(filePathSeg[-1])
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
-    if fileExt.lower() == "dxf":
+    if fext.lower() == ".dxf":
       mapLayers.mapLayers()
       saveActiveCell.saveActiveCell()
+      saveFlatDXF(fname)
     partitionPath="partition.gds"
     if not os.path.exists("Subdomains"):
       os.mkdir("Subdomains")
