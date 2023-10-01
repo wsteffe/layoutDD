@@ -17,6 +17,8 @@ def importLayout():
       mapLayers.mapLayers()
       saveActiveCell.saveActiveCell()
     partitionPath="partition.gds"
+    if not os.path.exists("Subdomains"):
+      os.mkdir("Subdomains")
     if not os.path.exists(partitionPath): 
       cellView   = mainWindow.create_layout(2)
       cellIndex  = cellView.index()
