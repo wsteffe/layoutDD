@@ -3,11 +3,11 @@
  <name>layoutDD</name>
  <token/>
  <hidden>false</hidden>
- <version>0.0</version>
+ <version>0.2.3</version>
  <api-version/>
- <title>Python Macro</title>
- <doc>This template provides a Python macro.</doc>
- <doc-url>doc/readme.html</doc-url>
+ <title>layoutDD</title>
+ <doc>Provides commands for Decomposition of Layout in a set of Subdomains.</doc>
+ <doc-url>README.md</doc-url>
  <url/>
  <license>GPLv3</license>
  <author>Walter Steffe</author>
