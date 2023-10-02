@@ -93,6 +93,32 @@ def getCellLayerShapes(layoutView):
           cellLayerShapes[lif.name]=cell.shapes(lid)
     return cellLayerShapes
 
+def new_FCdocument(path):
+    import FreeCAD
+    import Part
+    doc = FreeCAD.newDocument()
+    doc.saveAs(path+'.FCStd')
+    if hasattr(Part, 'disableElementMapping'):
+        Part.disableElementMapping(doc)
+    doc.UndoMode = 0
+    return doc
+
+def create_3DSubdomain(subdomain_path):
+   import os
+   import FreeCAD
+   import Import,Part
+   FCdoc=new_FCdocument(subdomain_path)
+   partName = os.path.basename(subdomain_path)
+   if not partName.startswith('CMP_'):
+       partName='CMP_'+partName
+   paramPath = "User parameter:BaseApp/Preferences/Mod/layout2fc"
+   params = FreeCAD.ParamGet(paramPath)
+   params.SetBool('groupLayers', True)
+   params.SetBool('connectEdges', False)
+   Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
+   for doc in FCdoc.getDependentDocuments():
+        doc.save();
+   return FCdoc
 
 def extractSubdomainDXF(layoutView,cellLayerShapes):
     from ezdxf.addons import iterdxf
@@ -113,7 +139,8 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
     cellFilePathSeg   = cellFilePath.replace("\\", "/").split("/")
     cellFname         = cellFilePathSeg[-1].split(".")[0]
     mainDoc = iterdxf.opendxf(mainFname+'_flat.dxf')
-    exporter = mainDoc.export("Subdomains/"+cell.name+'.dxf')
+    subdomain_path="Subdomains/"+cell.name
+    exporter = mainDoc.export(subdomain_path+'.dxf')
     msp=mainDoc.modelspace()
     extractedTypes=["LINE","POINT","VERTEX","POLYLINE","LWPOLYLINE","SPLINE","CIRCLE","ARC","ELLIPSE"]
     tech_name = "PCB"
@@ -138,6 +165,8 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
     finally:
       exporter.close()
       mainDoc.close()
+      create_3DSubdomain(subdomain_path)
+
 
 def makeSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
@@ -177,3 +206,7 @@ def deleteCellLayers(layoutView):
 def deleteSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
     deleteCellLayers(layoutView)
+
+  
+
+    
