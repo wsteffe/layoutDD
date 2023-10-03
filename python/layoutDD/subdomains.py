@@ -45,6 +45,8 @@ def copyVisibleLayers(layoutView):
        lid = lyp.layer_index()
        if lid<0:
            continue
+       if lyp.source_name=="none":
+           continue
        if lyp.cellview()==cellViewId and lyp.visible:
           cellv_lif = cellLayout.get_info(lid)
           ln,dt = cellv_lif.layer, cellv_lif.datatype
@@ -103,7 +105,9 @@ def new_FCdocument(path):
     doc.UndoMode = 0
     return doc
 
-def create_3DSubdomain(subdomain_path):
+
+def create_3DSubdomain(subdomain_path,stack_path):
+   import ezdxf
    import os
    import FreeCAD
    import Import,Part
@@ -111,17 +115,44 @@ def create_3DSubdomain(subdomain_path):
    partName = os.path.basename(subdomain_path)
    if not partName.startswith('CMP_'):
        partName='CMP_'+partName
+   part=FCdoc.addObject("App::Part", partName)
+   DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
    paramPath = "User parameter:BaseApp/Preferences/Mod/layout2fc"
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
    params.SetBool('connectEdges', False)
    Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
+   stack={}
+   with open(stack_path, 'r') as f:
+      for line in f:
+        line=line.split('#')[0]
+        [ldata,zdata]=line.split(':')
+        stack[ldata]=zdata.split()
+   stack_scale=1
+   if 'scale' in stack.keys():
+        stack_scale=float(stack['scale'][0])
+   bodyName={}
+   for layer in DXFdoc.layers:
+      lname=layer.dxf.name
+      if lname not in stack.keys():
+            continue
+      [prefix,z0,z1,opi,orderi]=stack[lname]
+      z0=float(z0)
+      z1=float(z1)
+      body=FCdoc.addObject("PartDesign::Body", prefix+"_"+lname)
+      bodyName[lname]=body.Name
+      part.addObject(body)
+      pl=FreeCAD.Placement()
+      pl.move(FreeCAD.Vector(0,0,z0*stack_scale))
+      body.Placement = pl
+      body.Visibility = True
+      body.ExportMode = 'Child Query'
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
 
 
-def add_clippingPolygon(poly,importFac,subdomain_path):
+def add_clippingPolygon(poly,importFac,cellLayerShapes,subdomain_path):
    import ezdxf
    import os
    points=[]
@@ -133,6 +164,9 @@ def add_clippingPolygon(poly,importFac,subdomain_path):
    msp = doc.modelspace()
    lwp = msp.add_lwpolyline(points, dxfattribs={"layer": "ClippingPolygon"})
    lwp.closed=True
+   for layername in cellLayerShapes.keys():
+       if not layername in doc.layers:
+          doc.layers.add(name=layername)
    doc.save()
 
 
@@ -185,8 +219,9 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
       mainDoc.close()
       cellLy01Id=cell.layout().layer(0,1)
       clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy01Id)]
-      add_clippingPolygon(clypPolygons[0],importFac,subdomain_path)
-      create_3DSubdomain(subdomain_path)
+      add_clippingPolygon(clypPolygons[0],importFac,cellLayerShapes,subdomain_path)
+      stack_path=mainFname+".stack"
+      create_3DSubdomain(subdomain_path,stack_path)
 
 
 def makeSubdomain():
