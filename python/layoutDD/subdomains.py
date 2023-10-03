@@ -120,18 +120,41 @@ def create_3DSubdomain(subdomain_path):
         doc.save();
    return FCdoc
 
+
+def add_clippingPolygon(poly,importFac,subdomain_path):
+   import ezdxf
+   import os
+   points=[]
+   for pt in poly.each_point_hull():
+      x, y = pt.x/importFac, pt.y/importFac
+      points.append((x,y))
+   doc=ezdxf.readfile(subdomain_path+".dxf")
+   doc.layers.add(name="ClippingPolygon", color=7, linetype="DASHED")
+   msp = doc.modelspace()
+   lwp = msp.add_lwpolyline(points, dxfattribs={"layer": "ClippingPolygon"})
+   lwp.closed=True
+   doc.save()
+
+
+
 def extractSubdomainDXF(layoutView,cellLayerShapes):
     from ezdxf.addons import iterdxf
     from ezdxf import bbox
     mainCellView  = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
+    mainLayout     = mainCellView.layout()
     cellView       = layoutView.active_cellview()
     cellViewId     = cellView.index()
+    cellLayout     = cellView.layout()
     cell = cellView.cell
     if cellViewId==mainCellViewId:
         return
     if cell is None:
        return
+    tech_name = "PCB"
+    tech=pya.Technology.technology_by_name(tech_name)
+    options=tech.load_layout_options
+    importFac =options.dxf_unit/mainLayout.dbu
     mainFilePath      = mainCellView.filename()
     mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
     mainFname         = mainFilePathSeg[-1].split(".")[0]
@@ -143,9 +166,6 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
     exporter = mainDoc.export(subdomain_path+'.dxf')
     msp=mainDoc.modelspace()
     extractedTypes=["LINE","POINT","VERTEX","POLYLINE","LWPOLYLINE","SPLINE","CIRCLE","ARC","ELLIPSE"]
-    tech_name = "PCB"
-    tech=pya.Technology.technology_by_name(tech_name)
-    options=tech.load_layout_options
     try:
       for entity in msp:
          if not entity.dxf.hasattr("layer"):
@@ -155,16 +175,17 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
               bb = bbox.extents([entity])
               ll=bb.extmin
               ur=bb.extmax
-              fac=options.dxf_unit
-              kbb= pya.Box(ll[0]*fac,ll[1]*fac,ur[0]*fac,ur[1]*fac)
+              kbb= pya.Box(ll[0]*importFac,ll[1]*importFac,ur[0]*importFac,ur[1]*importFac)
               polyShapes=cellLayerShapes[entity.dxf.layer]
-              polyNum=len(polyShapes)
               touchPoly=[poly for poly in polyShapes.each_touching(kbb)]
               if len(touchPoly)>0:
                  exporter.write(entity)
     finally:
       exporter.close()
       mainDoc.close()
+      cellLy01Id=cell.layout().layer(0,1)
+      clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy01Id)]
+      add_clippingPolygon(clypPolygons[0],importFac,subdomain_path)
       create_3DSubdomain(subdomain_path)
 
 
@@ -207,6 +228,21 @@ def deleteSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
     deleteCellLayers(layoutView)
 
+  
+
+def create_3DSubdomFromActiveCell():
+   import FreeCAD
+   import Import,Part
+   layoutView  = pya.Application.instance().main_window().current_view()
+   mainCellView   = layoutView.cellview(0)
+   mainCellViewId = mainCellView.index()
+   cellView       = layoutView.active_cellview()
+   cellViewId     = cellView.index()
+   if cellViewId==mainCellViewId:
+        return
+   cell = cellView.cell
+   subdomain_path="Subdomains/"+cell.name
+   FCdoc=create_3DSubdomain(subdomain_path)
   
 
     

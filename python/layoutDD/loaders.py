@@ -50,7 +50,7 @@ def openProject():
     gdsPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "GDS2 (*.gds)")
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())
-    cellViewId   = layoutView.load_layout(gdsPath, 2)
+    cellViewId   = layoutView.load_layout(gdsPath)
     cellView     = layoutView.cellview(cellViewId)
     lypPath      = gdsPath.split(".")[0]+".lyp"
     layoutView.load_layer_props(lypPath)
