@@ -111,18 +111,72 @@ def create_3DSubdomain(subdomain_path,stack_path):
    import os
    import FreeCAD
    import Import,Part
+   def addPad(sketch,h):
+       global FCdoc
+       pad=FCdoc.addObject('PartDesign::Pad','Pad')
+       pad.Profile=sketch
+       pad.NewSolid=False
+       pad.Length = h
+       pad.Direction = (0, 0, 1)
+       pad.ReferenceAxis = None
+       pad.AlongSketchNormal = 0
+       pad.Type = 0
+       pad.UpToFace = None
+       pad.Reversed = False
+       pad.Offset = 0
+       pad.Visibility =True
+       return pad
+   def addPocket(sketch,h):
+       global FCdoc
+       pocket=FCdoc.addObject('PartDesign::Pocket','Pocket')
+       pocket.Profile=sketch
+       pocket.Length = h
+       pocket.Reversed = True
+       pocket.Visibility =True
+       return pocket
+   def addVSurf(sketch,h):
+       global FCdoc
+       extrude=FCdoc.addObject('PartDesign::Extrusion','Pad')
+       extrude.Profile=sketch
+       extrude.NewSolid=False
+       extrude.Length = h
+       extrude.Direction = (0, 0, 1)
+       extrude.ReferenceAxis = None
+       extrude.AlongSketchNormal = 0
+       extrude.Type = 0
+       extrude.UpToFace = None
+       extrude.Reversed = False
+       extrude.Offset = 0
+       extrude.Visibility =True
+       return extrude
+   def addHSurf(sketch):
+       global FCdoc
+       obj=FCdoc.addObject('PartDesign::SubShapeBinder','Binder')
+       obj.Support=sketch
+       obj.Visibility =True
+       return obj
+
+   logger = FreeCAD.Logger('layout2fc')
+
    FCdoc=new_FCdocument(subdomain_path)
-   partName = os.path.basename(subdomain_path)
-   if not partName.startswith('CMP_'):
-       partName='CMP_'+partName
-   part=FCdoc.addObject("App::Part", partName)
    DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
    paramPath = "User parameter:BaseApp/Preferences/Mod/layout2fc"
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
    params.SetBool('connectEdges', False)
    Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
+   FClayers = FCdoc.Objects
+   partName = os.path.basename(subdomain_path)
+   if not partName.startswith('CMP_'):
+       partName='CMP_'+partName
+   part=FCdoc.addObject("App::Part", partName)
+
    stack={}
+   FClayers1 = [ o for o in FClayers if o.Name=="ClippingPolygon" ]
+   hasClippingPolygon=False
+   if FClayers1:
+      hasClippingPolygon=True
+      FCclipLayer = FClayers1[0]
    with open(stack_path, 'r') as f:
       for line in f:
         line=line.split('#')[0]
@@ -131,7 +185,6 @@ def create_3DSubdomain(subdomain_path,stack_path):
    stack_scale=1
    if 'scale' in stack.keys():
         stack_scale=float(stack['scale'][0])
-   bodyName={}
    for layer in DXFdoc.layers:
       lname=layer.dxf.name
       if lname not in stack.keys():
@@ -139,14 +192,27 @@ def create_3DSubdomain(subdomain_path,stack_path):
       [prefix,z0,z1,opi,orderi]=stack[lname]
       z0=float(z0)
       z1=float(z1)
-      body=FCdoc.addObject("PartDesign::Body", prefix+"_"+lname)
-      bodyName[lname]=body.Name
-      part.addObject(body)
+      FClayers1 = [ o for o in FClayers if o.Name.endswith(lname) ]
+      label=prefix+"_"+lname
       pl=FreeCAD.Placement()
       pl.move(FreeCAD.Vector(0,0,z0*stack_scale))
-      body.Placement = pl
-      body.Visibility = True
-      body.ExportMode = 'Child Query'
+      label=prefix+"_"+lname
+      layerHasGeometry=False
+      if FClayers1:
+         layerHasGeometry=True
+         layerComp = FClayers1[0]
+         layerComp.Label=label
+         layerComp.Placement = pl
+         layerComp.Visibility = True
+         part.addObject(layerComp)
+      else:
+         if hasClippingPolygon:
+            layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
+            cmp=Part.Compound(FCclipLayer.Shape.Edges)
+            layerComp.Shape=cmp
+            layerComp.Placement = pl
+            layerComp.Visibility = True
+            part.addObject(layerComp)
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
@@ -276,8 +342,13 @@ def create_3DSubdomFromActiveCell():
    if cellViewId==mainCellViewId:
         return
    cell = cellView.cell
+   mainFilePath      = mainCellView.filename()
+   mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
+   mainFname         = mainFilePathSeg[-1].split(".")[0]
+   stack_path=mainFname+".stack"
    subdomain_path="Subdomains/"+cell.name
-   FCdoc=create_3DSubdomain(subdomain_path)
-  
+   FCdoc=create_3DSubdomain(subdomain_path,stack_path)
+
+#create_3DSubdomFromActiveCell()
 
     
