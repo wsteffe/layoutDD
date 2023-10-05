@@ -109,6 +109,7 @@ def new_FCdocument(path):
 def create_3DSubdomain(subdomain_path,stack_path):
    import ezdxf
    import os,platform
+   from operator import itemgetter
    import FreeCAD
    import Import,Part
    import BOPTools.JoinAPI
@@ -176,6 +177,7 @@ def create_3DSubdomain(subdomain_path,stack_path):
    if 'scale' in stack.keys():
         stack_scale=float(stack['scale'][0])
 
+
    FCdoc=new_FCdocument(subdomain_path)
    DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
    paramPath = "User parameter:BaseApp/Preferences/Mod/layoutDD"
@@ -190,43 +192,62 @@ def create_3DSubdomain(subdomain_path,stack_path):
        partName='CMP_'+partName
    part=FCdoc.addObject("App::Part", partName)
 
-   FClayers1 = [ o for o in FClayers if o.Name=="ClippingPolygon" ]
-   hasClippingPolygon=False
-   if FClayers1:
-      hasClippingPolygon=True
-      FCclipLayer = FClayers1[0]
+   layer_order_and_name= []
    for layer in DXFdoc.layers:
       lname=layer.dxf.name
       if lname not in stack.keys():
             continue
-      [prefix,z0,z1,opi,orderi]=stack[lname]
-      z0=float(z0)
-      z1=float(z1)
-      FClayers1 = [ o for o in FClayers if o.Name.endswith(lname) ]
+      layer_order_and_name.append((stack[lname][4],lname))
+   layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
+
+   ordered_layer_names= []
+   for (order,name) in layer_order_and_name:
+       ordered_layer_names.append(name)
+
+   FClayerFromName={}
+   for layer in FClayers:
+     FClayerFromName[layer.Name]=layer
+
+   if "ClippingPolygon" not in FClayerFromName.keys():
+      return
+  
+   FCclipLayer = FClayerFromName["ClippingPolygon"]
+
+   for lname in ordered_layer_names:
+      if lname not in stack.keys():
+            continue
+      [prefix,z0i,z1i,opi,orderi]=stack[lname]
+      z0i=float(z0i)
+      z1i=float(z1i)
       label=prefix+"_"+lname
       pl=FreeCAD.Placement()
-      pl.move(FreeCAD.Vector(0,0,z0*stack_scale))
+      pl.move(FreeCAD.Vector(0,0,z0i*stack_scale))
       label=prefix+"_"+lname
       layerHasGeometry=False
-      if FClayers1:
+      if lname in FClayerFromName.keys():
          layerHasGeometry=True
-         layerComp = FClayers1[0]
+         FClayer=FClayerFromName[lname]
+      if opi=='vsurf':
+         layerComp=FClayer
          layerComp.Label=label
          layerComp.Placement = pl
          layerComp.Visibility = True
          part.addObject(layerComp)
       else:
-         if hasClippingPolygon:
-            layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
-            contEdges=FCclipLayer.Shape.Edges
-            connected=BOPTools.JoinAPI.connect(contEdges)
-            wire=Part.Wire(connected.Edges)
-            face=Part.Face(wire)
-            comp=Part.Compound(face)
-            layerComp.Shape=comp
-            layerComp.Placement = pl
-            layerComp.Visibility = True
-            part.addObject(layerComp)
+         contEdges=FCclipLayer.Shape.Edges
+         connected=BOPTools.JoinAPI.connect(contEdges)
+         wire=Part.Wire(connected.Edges)
+         face=Part.Face(wire)
+         comp=Part.Compound(face)
+         if layerHasGeometry:
+           for edge in FClayer.Shape.Edges:
+              comp.add(edge)
+           FCdoc.removeObject(FClayer.Name)
+         layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
+         layerComp.Shape=comp
+         layerComp.Placement = pl
+         layerComp.Visibility = True
+         part.addObject(layerComp)
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
