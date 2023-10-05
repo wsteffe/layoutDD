@@ -108,9 +108,17 @@ def new_FCdocument(path):
 
 def create_3DSubdomain(subdomain_path,stack_path):
    import ezdxf
-   import os
+   import os,platform
    import FreeCAD
    import Import,Part
+   import BOPTools.JoinAPI
+   import BOPTools.SplitAPI
+#   homedir = os.path.expanduser("~")
+#   osType=platform.system()
+#   if osType=='Windows':
+#      FCuserConfigPath = homedir + "\\AppData\\FreeCAD\\user.cfg"
+#   if osType=='Linux':
+#      FCuserConfigPath = homedir + "/.config/FreeCAD/user.cfg"
    def addPad(sketch,h):
        global FCdoc
        pad=FCdoc.addObject('PartDesign::Pad','Pad')
@@ -157,26 +165,8 @@ def create_3DSubdomain(subdomain_path,stack_path):
        return obj
 
    logger = FreeCAD.Logger('layout2fc')
-
-   FCdoc=new_FCdocument(subdomain_path)
-   DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
-   paramPath = "User parameter:BaseApp/Preferences/Mod/layout2fc"
-   params = FreeCAD.ParamGet(paramPath)
-   params.SetBool('groupLayers', True)
-   params.SetBool('connectEdges', False)
-   Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
-   FClayers = FCdoc.Objects
-   partName = os.path.basename(subdomain_path)
-   if not partName.startswith('CMP_'):
-       partName='CMP_'+partName
-   part=FCdoc.addObject("App::Part", partName)
-
+   
    stack={}
-   FClayers1 = [ o for o in FClayers if o.Name=="ClippingPolygon" ]
-   hasClippingPolygon=False
-   if FClayers1:
-      hasClippingPolygon=True
-      FCclipLayer = FClayers1[0]
    with open(stack_path, 'r') as f:
       for line in f:
         line=line.split('#')[0]
@@ -185,6 +175,26 @@ def create_3DSubdomain(subdomain_path,stack_path):
    stack_scale=1
    if 'scale' in stack.keys():
         stack_scale=float(stack['scale'][0])
+
+   FCdoc=new_FCdocument(subdomain_path)
+   DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
+   paramPath = "User parameter:BaseApp/Preferences/Mod/layoutDD"
+   params = FreeCAD.ParamGet(paramPath)
+   params.SetBool('groupLayers', True)
+   params.SetBool('connectEdges', False)
+   params.SetFloat('dxfScaling', 0.001)
+   Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
+   FClayers = FCdoc.Objects
+   partName = os.path.basename(subdomain_path)
+   if not partName.startswith('CMP_'):
+       partName='CMP_'+partName
+   part=FCdoc.addObject("App::Part", partName)
+
+   FClayers1 = [ o for o in FClayers if o.Name=="ClippingPolygon" ]
+   hasClippingPolygon=False
+   if FClayers1:
+      hasClippingPolygon=True
+      FCclipLayer = FClayers1[0]
    for layer in DXFdoc.layers:
       lname=layer.dxf.name
       if lname not in stack.keys():
@@ -208,8 +218,12 @@ def create_3DSubdomain(subdomain_path,stack_path):
       else:
          if hasClippingPolygon:
             layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
-            cmp=Part.Compound(FCclipLayer.Shape.Edges)
-            layerComp.Shape=cmp
+            contEdges=FCclipLayer.Shape.Edges
+            connected=BOPTools.JoinAPI.connect(contEdges)
+            wire=Part.Wire(connected.Edges)
+            face=Part.Face(wire)
+            comp=Part.Compound(face)
+            layerComp.Shape=comp
             layerComp.Placement = pl
             layerComp.Visibility = True
             part.addObject(layerComp)
@@ -226,7 +240,7 @@ def add_clippingPolygon(poly,importFac,cellLayerShapes,subdomain_path):
       x, y = pt.x/importFac, pt.y/importFac
       points.append((x,y))
    doc=ezdxf.readfile(subdomain_path+".dxf")
-   doc.layers.add(name="ClippingPolygon", color=7, linetype="DASHED")
+   doc.layers.add(name="ClippingPolygon", color=7, linetype="CONTINUOUS")
    msp = doc.modelspace()
    lwp = msp.add_lwpolyline(points, dxfattribs={"layer": "ClippingPolygon"})
    lwp.closed=True
