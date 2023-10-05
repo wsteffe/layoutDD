@@ -68,13 +68,13 @@ def copyVisibleLayers(layoutView):
 
 
 def getCellLayerShapes(layoutView):
-    mainCellView  = layoutView.cellview(0)
+    mainCellView   = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
     cellView       = layoutView.active_cellview()
     cellViewId     = cellView.index()
     cellLayout= cellView.layout()
     cellLayerShapes={}
-    cell = cellView.cell
+    cell =cellView.cell
     if cellViewId==mainCellViewId:
        return
     if cell is None:
@@ -105,8 +105,35 @@ def new_FCdocument(path):
     doc.UndoMode = 0
     return doc
 
+def evalLayerRegion(lname):
+   layoutView  = pya.Application.instance().main_window().current_view()
+   mainCellView = layoutView.cellview(0)
+   mainCellViewId = mainCellView.index()
+   mainLayout= mainCellView.layout()
+   mainCell = mainCellView.cell
+   for lyp in layoutView.each_layer():
+     if lyp.cellview()==mainCellViewId:
+       lid = lyp.layer_index()
+       if lid<0:
+           continue
+       if lyp.source_name!=lname:
+           continue
+       layerReg =pya.Region([itr.shape().polygon.transformed(itr.trans()) for itr in mainLayout.begin_shapes(mainCell, lid)])
+       return layerReg
 
-def create_3DSubdomain(subdomain_path,stack_path):
+def pointIsInLayerRegion(x,y,layerReg):
+   box = pya.Box(x-1, y-1, x+1, y+1)
+   region_b = pya.Region(box)
+   result = layerReg.interacting(region_b)
+   if not result.is_empty():
+      return True
+   else:
+      return False
+
+
+
+
+def create_3DSubdomain(subdomain_path,stack_path,importFac):
    import ezdxf
    import os,platform
    from operator import itemgetter
@@ -114,6 +141,7 @@ def create_3DSubdomain(subdomain_path,stack_path):
    import Import,Part
    import BOPTools.JoinAPI
    import BOPTools.SplitAPI
+   from BOPTools.GeneralFuseResult import GeneralFuseResult
 #   homedir = os.path.expanduser("~")
 #   osType=platform.system()
 #   if osType=='Windows':
@@ -234,16 +262,53 @@ def create_3DSubdomain(subdomain_path,stack_path):
          layerComp.Visibility = True
          part.addObject(layerComp)
       else:
+         layerReg=evalLayerRegion(lname)
          contEdges=FCclipLayer.Shape.Edges
          connected=BOPTools.JoinAPI.connect(contEdges)
-         wire=Part.Wire(connected.Edges)
-         face=Part.Face(wire)
-         comp=Part.Compound(face)
-         if layerHasGeometry:
-           for edge in FClayer.Shape.Edges:
-              comp.add(edge)
-           FCdoc.removeObject(FClayer.Name)
+         contour=Part.Wire(connected.Edges)
+         face=Part.Face(contour)
          layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
+         if layerHasGeometry:
+           shapes=[face]
+           shapes.append(contour)
+           for edge in FClayer.Shape.Edges:
+              shapes.append(edge)
+           FCdoc.removeObject(FClayer.Name)
+           tolerance=0.0
+           pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
+           gr =GeneralFuseResult(shapes, (pieces,map))
+           slicedFace=gr.piecesFromSource(shapes[0])
+           faceSet=set()
+           for face in slicedFace:
+             faceSet.add(face)
+           slicedContour=gr.piecesFromSource(shapes[1])
+           for cwire in slicedContour:
+             for cedge in cwire.Edges:
+               P1=cedge.Vertexes[0].Point
+               P2=cedge.Vertexes[1].Point
+               Pc=(P1+P2)/2
+               xc=Pc[0]*importFac
+               yc=Pc[1]*importFac
+               if not pointIsInLayerRegion(xc,yc,layerReg):
+                  for face in slicedFace:
+                    removed=False
+                    if face in faceSet and not removed:
+                       for fedge in face.Edges:
+                          if fedge.isSame(cedge):
+                              faceSet.remove(face)
+                              removed=True
+                              break
+           comp=None
+           for face in faceSet:
+             if comp==None:
+                comp=Part.Compound(face)
+             else:
+                comp.add(face)
+         else:
+           comp=Part.Compound(face)
+#         if layerHasGeometry:
+#           for edge in FClayer.Shape.Edges:
+#              comp.add(edge)
          layerComp.Shape=comp
          layerComp.Placement = pl
          layerComp.Visibility = True
@@ -289,7 +354,7 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
     tech_name = "PCB"
     tech=pya.Technology.technology_by_name(tech_name)
     options=tech.load_layout_options
-    importFac =options.dxf_unit/mainLayout.dbu
+    importFac         =options.dxf_unit/mainLayout.dbu
     mainFilePath      = mainCellView.filename()
     mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
     mainFname         = mainFilePathSeg[-1].split(".")[0]
@@ -322,7 +387,7 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
       clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy01Id)]
       add_clippingPolygon(clypPolygons[0],importFac,cellLayerShapes,subdomain_path)
       stack_path=mainFname+".stack"
-      create_3DSubdomain(subdomain_path,stack_path)
+      create_3DSubdomain(subdomain_path,stack_path,importFac)
 
 
 def makeSubdomain():
@@ -372,17 +437,22 @@ def create_3DSubdomFromActiveCell():
    layoutView  = pya.Application.instance().main_window().current_view()
    mainCellView   = layoutView.cellview(0)
    mainCellViewId = mainCellView.index()
+   mainLayout     = mainCellView.layout()
    cellView       = layoutView.active_cellview()
    cellViewId     = cellView.index()
    if cellViewId==mainCellViewId:
         return
    cell = cellView.cell
+   tech_name = "PCB"
+   tech=pya.Technology.technology_by_name(tech_name)
+   options=tech.load_layout_options
+   importFac         =options.dxf_unit/mainLayout.dbu
    mainFilePath      = mainCellView.filename()
    mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
    mainFname         = mainFilePathSeg[-1].split(".")[0]
    stack_path=mainFname+".stack"
    subdomain_path="Subdomains/"+cell.name
-   FCdoc=create_3DSubdomain(subdomain_path,stack_path)
+   FCdoc=create_3DSubdomain(subdomain_path,stack_path,importFac)
 
 #create_3DSubdomFromActiveCell()
 
