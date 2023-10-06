@@ -20,6 +20,10 @@ def importLayout():
     if layoutView==None:
       return
     cellView      = layoutView.active_cellview()
+    mainLayout    = cellView.layout()
+    if mainLayout.technology() is None:
+      pya.MessageBox.info("Information", "Imported Layout must be associated with a Technology", pya.MessageBox.Ok)
+      return
     filePath      = cellView.active().filename()
     filePathSeg   = filePath.replace("\\", "/").split("/")
     fname,fext    = os.path.splitext(filePathSeg[-1])
