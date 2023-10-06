@@ -351,10 +351,11 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
         return
     if cell is None:
        return
-    tech_name = "PCB"
-    tech=pya.Technology.technology_by_name(tech_name)
-    options=tech.load_layout_options
-    importFac         =options.dxf_unit/mainLayout.dbu
+    if mainLayout.technology() is not None:
+       dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
+       importFac = dxf_unit/mainLayout.dbu
+    else:
+       importFac=1
     mainFilePath      = mainCellView.filename()
     mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
     mainFname         = mainFilePathSeg[-1].split(".")[0]
@@ -429,7 +430,6 @@ def deleteSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
     deleteCellLayers(layoutView)
 
-  
 
 def create_3DSubdomFromActiveCell():
    import FreeCAD
@@ -443,10 +443,11 @@ def create_3DSubdomFromActiveCell():
    if cellViewId==mainCellViewId:
         return
    cell = cellView.cell
-   tech_name = "PCB"
-   tech=pya.Technology.technology_by_name(tech_name)
-   options=tech.load_layout_options
-   importFac         =options.dxf_unit/mainLayout.dbu
+   if mainLayout.technology() is not None:
+      dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
+      importFac = dxf_unit/mainLayout.dbu
+   else:
+      importFac=1
    mainFilePath      = mainCellView.filename()
    mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
    mainFname         = mainFilePathSeg[-1].split(".")[0]
