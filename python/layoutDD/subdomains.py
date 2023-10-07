@@ -140,7 +140,7 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
     contWire=Part.Wire(connected.Edges)
     face=Part.Face(contWire)
     if not FClayerEdges:
-       comp=Part.Compound(face)
+       layerFaces=[face]
     else:
        layerReg=evalLayerRegion(lname)
        shapes=[face]
@@ -227,13 +227,8 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
             for face in rmFaceSet1:
                if face in tbdFaceSet:
                    tbdFaceSet.remove(face)
-       comp=None
-       for face in keepFaceSet:
-         if comp==None:
-           comp=Part.Compound(face)
-         else:
-           comp.add(face)
-    return comp
+       layerFaces=[ f for f in keepFaceSet]
+    return layerFaces
 
 
 def create_3DSubdomain(subdomain_path,stack_path,importFac):
@@ -248,21 +243,7 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
 #      FCuserConfigPath = homedir + "\\AppData\\FreeCAD\\user.cfg"
 #   if osType=='Linux':
 #      FCuserConfigPath = homedir + "/.config/FreeCAD/user.cfg"
-   def addPad(sketch,h):
-       global FCdoc
-       pad=FCdoc.addObject('PartDesign::Pad','Pad')
-       pad.Profile=sketch
-       pad.NewSolid=False
-       pad.Length = h
-       pad.Direction = (0, 0, 1)
-       pad.ReferenceAxis = None
-       pad.AlongSketchNormal = 0
-       pad.Type = 0
-       pad.UpToFace = None
-       pad.Reversed = False
-       pad.Offset = 0
-       pad.Visibility =True
-       return pad
+
    def addPocket(sketch,h):
        global FCdoc
        pocket=FCdoc.addObject('PartDesign::Pocket','Pocket')
@@ -355,19 +336,37 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
          FClayerEdges=FClayerEdgesFromName[lname]
       else:
          FClayerEdges=[]
+      layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
       if opi=='vsurf':
-         layerComp=FClayer
-         layerComp.Label=label
-         layerComp.Placement = pl
-         layerComp.Visibility = True
-         part.addObject(layerComp)
+         t=None
+      elif opi=='add' or opi=='ins':
+         layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
+         comp=None
+         hvec=FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)
+         for face in layerFaces:
+           pad=face.extrude(hvec)
+           for solid in pad.Solids:
+             if comp==None:
+               comp=Part.Compound(solid)
+             else:
+               comp.add(solid)
+         if comp != None:
+           layerComp.Shape=comp
+           layerComp.Placement=pl
+           layerComp.Visibility=True
+           part.addObject(layerComp)
       else:
-         faceComp=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
-         layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
-         if faceComp != None:
-           layerComp.Shape=faceComp
-           layerComp.Placement = pl
-           layerComp.Visibility = True
+         layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
+         comp=None
+         for face in layerFaces:
+           if comp==None:
+              comp=Part.Compound(face)
+           else:
+             comp.add(face)
+         if comp != None:
+           layerComp.Shape=comp
+           layerComp.Placement=pl
+           layerComp.Visibility=True
            part.addObject(layerComp)
    for doc in FCdoc.getDependentDocuments():
         doc.save();
