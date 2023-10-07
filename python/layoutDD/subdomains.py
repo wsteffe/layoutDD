@@ -131,6 +131,109 @@ def pointIsInLayerRegion(x,y,layerReg):
       return False
 
 
+def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
+    import FreeCAD
+    import Part
+    import BOPTools.JoinAPI
+    from BOPTools.GeneralFuseResult import GeneralFuseResult
+    connected=BOPTools.JoinAPI.connect(FCclipEdges)
+    contWire=Part.Wire(connected.Edges)
+    face=Part.Face(contWire)
+    if not FClayerEdges:
+       comp=Part.Compound(face)
+    else:
+       layerReg=evalLayerRegion(lname)
+       shapes=[face]
+       NcontEdges=0
+       for edge in FCclipEdges:
+         shapes.append(edge)
+         NcontEdges=NcontEdges+1
+       for edge in FClayerEdges:
+         shapes.append(edge)
+       tolerance=0.0
+       pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
+       gr =GeneralFuseResult(shapes, (pieces,map))
+       slicedFace=gr.piecesFromSource(shapes[0])
+       tbdFaceSet=set()
+       for face in slicedFace:
+         tbdFaceSet.add(face)
+       slicedContour=[]
+       for i in range(NcontEdges):
+         slicedEdge=gr.piecesFromSource(shapes[i+1])
+         for edge in slicedEdge:
+           slicedContour.append(edge)
+       keepFaceSet=set()
+       rmFaceSet=set()
+       for cedge in slicedContour:
+          P1=cedge.Vertexes[0].Point
+          P2=cedge.Vertexes[1].Point
+          Pc=(P1+P2)/2
+          xc=Pc[0]*importFac
+          yc=Pc[1]*importFac
+          for face in slicedFace:
+            found=False
+            if face in tbdFaceSet and not found:
+               for edge in face.Edges:
+                   if edge.isSame(cedge):
+                     if pointIsInLayerRegion(xc,yc,layerReg):
+                         keepFaceSet.add(face)
+                     else:
+                         rmFaceSet.add(face)
+                         tbdFaceSet.remove(face)
+                         found=True
+                         break
+       maxNestLevel=1
+       nestLevel=0
+       rmFaceSet1=rmFaceSet
+       while tbdFaceSet and nestLevel<maxNestLevel:
+         nestLevel=nestLevel+1
+         keepFaceSet1=set()
+         for rface in rmFaceSet1:
+            for rfwire in rface.Wires:
+               for face in tbdFaceSet:
+                 if face not in keepFaceSet:
+                    for wire in face.Wires:
+                       if wire.isSame(rfwire):
+                           keepFaceSet.add(face)
+                           keepFaceSet1.add(face)
+            for redge in rface.Edges:
+               if redge.isClosed():
+                  for face in tbdFaceSet:
+                     if face not in keepFaceSet:
+                        for edge in face.Edges:
+                           if edge.isSame(redge):
+                               keepFaceSet.add(face)
+                               keepFaceSet1.add(face)
+            for face in keepFaceSet1:
+               if face in tbdFaceSet:
+                    tbdFaceSet.remove(face)
+         rmFaceSet1=set()
+         for kface in keepFaceSet1:
+            for kwire in kface.Wires:
+               for face in tbdFaceSet:
+                   if face not in rmFaceSet:
+                      for wire in face.Wires:
+                         if wire.isSame(kwire):
+                            rmFaceSet.add(face)
+                            rmFaceSet1.add(face)
+            for kedge in kface.Edges:
+               if kedge.isClosed():
+                  for face in tbdFaceSet:
+                     if face not in rmFaceSet:
+                        for edge in face.Edges:
+                           if edge.isSame(kedge):
+                              rmFaceSet.add(face)
+                              rmFaceSet1.add(face)
+            for face in rmFaceSet1:
+               if face in tbdFaceSet:
+                   tbdFaceSet.remove(face)
+       comp=None
+       for face in keepFaceSet:
+         if comp==None:
+           comp=Part.Compound(face)
+         else:
+           comp.add(face)
+    return comp
 
 
 def create_3DSubdomain(subdomain_path,stack_path,importFac):
@@ -139,9 +242,6 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
    from operator import itemgetter
    import FreeCAD
    import Import,Part
-   import BOPTools.JoinAPI
-   import BOPTools.SplitAPI
-   from BOPTools.GeneralFuseResult import GeneralFuseResult
 #   homedir = os.path.expanduser("~")
 #   osType=platform.system()
 #   if osType=='Windows':
@@ -232,18 +332,15 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
    for (order,name) in layer_order_and_name:
        ordered_layer_names.append(name)
 
-   def FClayerEdgesFromName(FClayers,lname):
-      tmplist = [ o for o in FClayers if o.Name.endswith(lname) ]
-      if tmplist:
-          return tmplist[0].Shape.Edges
-      else:
-          return []
+   FClayerEdgesFromName={}
+   for layer in FClayers:
+      FClayerEdgesFromName[layer.Name]=layer.Shape.Edges
+      FCdoc.removeObject(layer.Name)
 
-   FCclipEdges = FClayerEdgesFromName(FClayers,"ClippingPolygon")
+   FCclipEdges = FClayerEdgesFromName["ClippingPolygon"]
    if not FCclipEdges:
       return
 
-   FClayersToRemove=[]
    for lname in ordered_layer_names:
       if lname not in stack.keys():
             continue
@@ -254,10 +351,10 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
       pl=FreeCAD.Placement()
       pl.move(FreeCAD.Vector(0,0,z0i*stack_scale))
       label=prefix+"_"+lname
-      layerHasGeometry=False
-      FClayerEdges=FClayerEdgesFromName(FClayers,lname)
-      if FClayerEdges:
-         layerHasGeometry=True
+      if lname in FClayerEdgesFromName.keys():
+         FClayerEdges=FClayerEdgesFromName[lname]
+      else:
+         FClayerEdges=[]
       if opi=='vsurf':
          layerComp=FClayer
          layerComp.Label=label
@@ -265,115 +362,13 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
          layerComp.Visibility = True
          part.addObject(layerComp)
       else:
-         connected=BOPTools.JoinAPI.connect(FCclipEdges)
-         contWire=Part.Wire(connected.Edges)
-         face=Part.Face(contWire)
+         faceComp=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
          layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
-         if layerHasGeometry:
-           layerReg=evalLayerRegion(lname)
-           shapes=[face]
-           NcontEdges=0
-           for edge in FCclipEdges:
-              shapes.append(edge)
-              NcontEdges=NcontEdges+1
-           for edge in FClayerEdges:
-              shapes.append(edge)
-           tolerance=0.0
-           pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
-           gr =GeneralFuseResult(shapes, (pieces,map))
-           slicedFace=gr.piecesFromSource(shapes[0])
-           tbdFaceSet=set()
-           for face in slicedFace:
-             tbdFaceSet.add(face)
-           slicedContour=[]
-           for i in range(NcontEdges):
-             slicedEdge=gr.piecesFromSource(shapes[i+1])
-             for edge in slicedEdge:
-                slicedContour.append(edge)
-           keepFaceSet=set()
-           rmFaceSet=set()
-           for cedge in slicedContour:
-               P1=cedge.Vertexes[0].Point
-               P2=cedge.Vertexes[1].Point
-               Pc=(P1+P2)/2
-               xc=Pc[0]*importFac
-               yc=Pc[1]*importFac
-               for face in slicedFace:
-                 found=False
-                 if face in tbdFaceSet and not found:
-                    for edge in face.Edges:
-                        if edge.isSame(cedge):
-                          if pointIsInLayerRegion(xc,yc,layerReg):
-                              keepFaceSet.add(face)
-                          else:
-                              rmFaceSet.add(face)
-                          tbdFaceSet.remove(face)
-                          found=True
-                          break
-           maxNestLevel=1
-           nestLevel=0
-           rmFaceSet1=rmFaceSet
-           keepFaceSet1=set()
-           while tbdFaceSet and nestLevel<maxNestLevel:
-              nestLevel=nestLevel+1
-              for rface in rmFaceSet1:
-                 for rfwire in rface.Wires:
-                    for face in tbdFaceSet:
-                      if face not in keepFaceSet:
-                         for wire in face.Wires:
-                            if wire.isSame(rfwire):
-                                keepFaceSet.add(face)
-                                keepFaceSet1.add(face)
-                 for redge in rface.Edges:
-                    if redge.isClosed():
-                       for face in tbdFaceSet:
-                          if face not in keepFaceSet:
-                             for edge in face.Edges:
-                                if edge.isSame(redge):
-                                    keepFaceSet.add(face)
-                                    keepFaceSet1.add(face)
-                 for face in keepFaceSet1:
-                    if face in tbdFaceSet:
-                         tbdFaceSet.remove(face)
-              rmFaceSet1=set()
-              for kface in keepFaceSet1:
-                 for kwire in kface.Wires:
-                    for face in tbdFaceSet:
-                        if face not in rmFaceSet:
-                           for wire in face.Wires:
-                              if wire.isSame(kwire):
-                                 rmFaceSet.add(face)
-                                 rmFaceSet1.add(face)
-                 for kedge in kface.Edges:
-                    if kedge.isClosed():
-                       for face in tbdFaceSet:
-                          if face not in rmFaceSet:
-                             for edge in face.Edges:
-                                if edge.isSame(kedge):
-                                   rmFaceSet.add(face)
-                                   rmFaceSet1.add(face)
-                 for face in rmFaceSet1:
-                    if face in tbdFaceSet:
-                        tbdFaceSet.remove(face)
-           comp=None
-           for face in keepFaceSet:
-             if comp==None:
-                comp=Part.Compound(face)
-             else:
-                comp.add(face)
-           FClayersToRemove.append(lname)
-         else:
-           comp=Part.Compound(face)
-#         if layerHasGeometry:
-#           for edge in FClayer.Shape.Edges:
-#              comp.add(edge)
-         if comp != None:
-           layerComp.Shape=comp
+         if faceComp != None:
+           layerComp.Shape=faceComp
            layerComp.Placement = pl
            layerComp.Visibility = True
            part.addObject(layerComp)
-   for lname in FClayersToRemove:
-        FCdoc.removeObject(lname)
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
