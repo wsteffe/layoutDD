@@ -237,6 +237,7 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
    from operator import itemgetter
    import FreeCAD
    import Import,Part
+   from BOPTools.GeneralFuseResult import GeneralFuseResult
 #   homedir = os.path.expanduser("~")
 #   osType=platform.system()
 #   if osType=='Windows':
@@ -244,14 +245,6 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
 #   if osType=='Linux':
 #      FCuserConfigPath = homedir + "/.config/FreeCAD/user.cfg"
 
-   def addPocket(sketch,h):
-       global FCdoc
-       pocket=FCdoc.addObject('PartDesign::Pocket','Pocket')
-       pocket.Profile=sketch
-       pocket.Length = h
-       pocket.Reversed = True
-       pocket.Visibility =True
-       return pocket
    def addVSurf(sketch,h):
        global FCdoc
        extrude=FCdoc.addObject('PartDesign::Extrusion','Pad')
@@ -309,10 +302,6 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
       layer_order_and_name.append((stack[lname][4],lname))
    layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
 
-   ordered_layer_names= []
-   for (order,name) in layer_order_and_name:
-       ordered_layer_names.append(name)
-
    FClayerEdgesFromName={}
    for layer in FClayers:
       FClayerEdgesFromName[layer.Name]=layer.Shape.Edges
@@ -322,7 +311,7 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
    if not FCclipEdges:
       return
 
-   for lname in ordered_layer_names:
+   for (lorder,lname) in layer_order_and_name:
       if lname not in stack.keys():
             continue
       [prefix,z0i,z1i,opi,orderi]=stack[lname]
@@ -337,6 +326,7 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
       else:
          FClayerEdges=[]
       layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
+      layerComp.Label=prefix+"_"+lname
       if opi=='vsurf':
          t=None
       elif opi=='add' or opi=='ins':
@@ -368,6 +358,42 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
            layerComp.Placement=pl
            layerComp.Visibility=True
            part.addObject(layerComp)
+      if opi=='ins' or opi=='cut':
+           for (lorderj,lnamej) in layer_order_and_name:
+              if lorderj==lorder:
+                 break
+              [prefixj,z0j,z1i,opj,orderj2]=stack[lnamej]
+              if prefixj!="DIEL":
+                  continue
+              z0j=float(z0j)
+              z1j=float(z1j)
+              if z0i>=z1j or z0j>=z1i:
+                 continue
+              objs = FCdoc.getObjectsByLabel(prefixj+"_"+lnamej)
+              if not objs:
+                  continue
+              layerCompj=objs[0]
+              tolerance=0.0
+              shapes=[layerComp.Shape,layerCompj.Shape]
+              pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
+              gr =GeneralFuseResult(shapes, (pieces,map))
+              slidedComp=gr.piecesFromSource(shapes[0])
+              slidedCompj=gr.piecesFromSource(shapes[1])
+              insertedSolids=set()
+              for subcomp in slidedComp:
+                for solid in subcomp.Solids:
+                    insertedSolids.add(solid)
+              solids=[]
+              for subcomp in slidedCompj:
+                for solid in subcomp.Solids:
+                  if solid not in insertedSolids:
+                     solids.append(solid)
+              if not solids:
+                 break
+              comp=Part.Compound(solids[0])
+              for isol in range(1,len(solids)):
+                 comp.add(solids[isol])
+              layerCompj.Shape=comp
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
