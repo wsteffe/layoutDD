@@ -358,13 +358,11 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
            layerComp.Placement=pl
            layerComp.Visibility=True
            part.addObject(layerComp)
-      if opi=='ins' or opi=='cut':
+      if opi=='ins' or opi=='cut' and layerComp.Shape.Solids:
            for (lorderj,lnamej) in layer_order_and_name:
               if lorderj==lorder:
                  break
-              [prefixj,z0j,z1i,opj,orderj2]=stack[lnamej]
-              if prefixj!="DIEL":
-                  continue
+              [prefixj,z0j,z1j,opj,orderj2]=stack[lnamej]
               z0j=float(z0j)
               z1j=float(z1j)
               if z0i>=z1j or z0j>=z1i:
@@ -374,11 +372,16 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
                   continue
               layerCompj=objs[0]
               tolerance=0.0
-              shapes=[layerComp.Shape,layerCompj.Shape]
+              if not layerCompj.Shape.Solids:
+                  continue
+              comp=layerComp.Shape
+              rpl=FreeCAD.Placement()
+              comp.Placement.Base=FreeCAD.Vector(0,0,(z0i-z0j*stack_scale))
+              shapes=[layerCompj.Shape,comp]
               pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
               gr =GeneralFuseResult(shapes, (pieces,map))
-              slidedComp=gr.piecesFromSource(shapes[0])
-              slidedCompj=gr.piecesFromSource(shapes[1])
+              slidedCompj=gr.piecesFromSource(shapes[0])
+              slidedComp=gr.piecesFromSource(shapes[1])
               insertedSolids=set()
               for subcomp in slidedComp:
                 for solid in subcomp.Solids:
