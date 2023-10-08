@@ -374,10 +374,12 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
               tolerance=0.0
               if not layerCompj.Shape.Solids:
                   continue
-              comp=layerComp.Shape
+              cutterTool=Part.Compound(layerComp.Shape.Solids[0])
+              for isol in range(1,len(layerComp.Shape.Solids)):
+                 cutterTool.add(layerComp.Shape.Solids[isol])
               rpl=FreeCAD.Placement()
-              comp.Placement.Base=FreeCAD.Vector(0,0,(z0i-z0j*stack_scale))
-              shapes=[layerCompj.Shape,comp]
+              cutterTool.Placement.Base=FreeCAD.Vector(0,0,(z0i-z0j*stack_scale))
+              shapes=[layerCompj.Shape,cutterTool]
               pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
               gr =GeneralFuseResult(shapes, (pieces,map))
               slidedCompj=gr.piecesFromSource(shapes[0])
