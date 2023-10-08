@@ -7,7 +7,7 @@
  <api-version/>
  <title>layoutDD</title>
  <doc>Provides commands for Decomposition of Layout in a set of Subdomains.</doc>
- <doc-url>README.md</doc-url>
+ <doc-url>https://github.com/wsteffe/layoutDD</doc-url>
  <url/>
  <license>GPLv3</license>
  <author>Walter Steffe</author>
