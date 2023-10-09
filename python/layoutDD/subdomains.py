@@ -271,10 +271,11 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
    
    stack={}
    with open(stack_path, 'r') as f:
-      for line in f:
-        line=line.split('#')[0]
-        [ldata,zdata]=line.split(':')
-        stack[ldata]=zdata.split()
+     for line in f:
+        if len(line.strip()) > 0:
+          line=line.split('#')[0]
+          [ldata,zdata]=line.split(':')
+          stack[ldata]=zdata.split()
    stack_scale=1
    if 'scale' in stack.keys():
         stack_scale=float(stack['scale'][0])

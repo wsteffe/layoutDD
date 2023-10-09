@@ -1,7 +1,7 @@
 
 # layoutDD
 
-This package is aimed to the Domain Decomposition of PCB layouts whuch defined in dxf files.
+This package is aimed to the Domain Decomposition of PCB layouts defined in dxf files.
 
 The dxf format allows a precise definition of curved shapes such as circles, ellipses, spline curves.
 The klayout software has the capability to import dxf files but the curvd shapes are discretized because
