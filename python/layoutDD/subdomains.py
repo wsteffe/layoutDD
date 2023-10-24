@@ -259,6 +259,7 @@ def evalLayerRegion(lname):
    mainCellViewId = mainCellView.index()
    mainLayout= mainCellView.layout()
    mainCell = mainCellView.cell
+   layerReg=None
    for lyp in layoutView.each_layer():
      if lyp.cellview()==mainCellViewId:
        lid = lyp.layer_index()
@@ -267,7 +268,7 @@ def evalLayerRegion(lname):
        if lyp.source_name!=lname:
            continue
        layerReg =pya.Region([itr.shape().polygon.transformed(itr.trans()) for itr in mainLayout.begin_shapes(mainCell, lid)])
-       return layerReg
+   return layerReg
 
 def pointIsInLayerRegion(x,y,layerReg):
    box = pya.Box(x-1, y-1, x+1, y+1)
@@ -279,16 +280,28 @@ def pointIsInLayerRegion(x,y,layerReg):
       return False
 
 
-def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
+def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly=False):
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
     contWire=Part.Wire(FCclipEdges)
     face=Part.Face(contWire)
-    if not FClayerEdges:
+    if useAllClipPoly:
        layerFaces=[face]
+       return layerFaces
+    layerReg=evalLayerRegion(lname)
+    if not FClayerEdges:
+       cedge=FCclipEdges[0]
+       P1=cedge.Vertexes[0].Point
+       P2=cedge.Vertexes[1].Point
+       Pc=(P1+P2)/2
+       xc=Pc[0]*importFac
+       yc=Pc[1]*importFac
+       layerFaces=[]
+       if layerReg != None:
+          if pointIsInLayerRegion(xc,yc,layerReg):
+             layerFaces.append(face)
     else:
-       layerReg=evalLayerRegion(lname)
        shapes=[face]
        NcontEdges=0
        for edge in FCclipEdges:
@@ -459,7 +472,7 @@ def create_3DSubdomain(cellName,stack_path,importFac):
               layer_order_and_name.append((stack[lname][4],lname))
 
    layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
-      
+
    FClayerEdgesFromName={}
    for layer in FClayers:
       FClayerEdgesFromName[layer.Name]=layer.Shape.Edges
@@ -492,7 +505,8 @@ def create_3DSubdomain(cellName,stack_path,importFac):
       if opi=='vsurf':
          t=None
       elif opi=='add' or opi=='ins':
-         layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
+         useAllClipPoly=len(FClayerEdges)==0 and prefix=="DIEL"
+         layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly)
          comp=None
          hvec=FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)
          for face in layerFaces:
