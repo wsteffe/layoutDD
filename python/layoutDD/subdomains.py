@@ -380,7 +380,8 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
     return layerFaces
 
 
-def create_3DSubdomain(subdomain_path,stack_path,importFac):
+def create_3DSubdomain(cellName,stack_path,importFac):
+   subdomain_path="Subdomains/"+cellName
    from . import loaders
    import ezdxf
    import os,platform
@@ -419,6 +420,11 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
 
    logger = FreeCAD.Logger('layout2fc')
    
+   partition_stack=loaders.readStack('partition.stack')
+   [cell_z0,cell_z1]=partition_stack[cellName]
+   cell_z0=float(cell_z0)
+   cell_z1=float(cell_z1)
+
    stack=loaders.readStack(stack_path)
    stack_scale=1
    if 'scale' in stack.keys():
@@ -439,13 +445,21 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
    part=FCdoc.addObject("App::Part", partName)
 
    layer_order_and_name= []
+   layerNames=set()
    for layer in DXFdoc.layers:
       lname=layer.dxf.name
+      layerNames.add(lname)
       if lname not in stack.keys():
             continue
       layer_order_and_name.append((stack[lname][4],lname))
-   layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
 
+   for lname in stack.keys():
+       if lname not in layerNames:
+          if len(stack[lname]) >3:
+              layer_order_and_name.append((stack[lname][4],lname))
+
+   layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
+      
    FClayerEdgesFromName={}
    for layer in FClayers:
       FClayerEdgesFromName[layer.Name]=layer.Shape.Edges
@@ -461,6 +475,10 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
       [prefix,z0i,z1i,opi,orderi]=stack[lname]
       z0i=float(z0i)
       z1i=float(z1i)
+      z0i=max(cell_z0,z0i)
+      z1i=min(cell_z1,z1i)
+      if z1i<z0i:
+          continue
       label=prefix+"_"+lname
       pl=FreeCAD.Placement()
       pl.move(FreeCAD.Vector(0,0,z0i*stack_scale))
@@ -618,7 +636,7 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
       clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy01Id)]
       add_clippingPolygon(clypPolygons[0],importFac,cellLayerShapes,subdomain_path)
       stack_path=mainFname+".stack"
-      create_3DSubdomain(subdomain_path,stack_path,importFac)
+      create_3DSubdomain(cell.name,stack_path,importFac)
 
 
 def makeSubdomain():
@@ -682,8 +700,7 @@ def create_3DSubdomFromActiveCell():
    mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
    mainFname         = mainFilePathSeg[-1].split(".")[0]
    stack_path=mainFname+".stack"
-   subdomain_path="Subdomains/"+cell.name
-   FCdoc=create_3DSubdomain(subdomain_path,stack_path,importFac)
+   FCdoc=create_3DSubdomain(cell.name,stack_path,importFac)
 
 #create_3DSubdomFromActiveCell()
 
