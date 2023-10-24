@@ -154,19 +154,28 @@ def deleteRegion():
       loaders.saveStack('partition.stack',partition_stack)
 
 
-def copyVisibleLayers(layoutView):
-    from . import saveActiveCell
-    mainCellView   = layoutView.cellview(0)
+def copyInterceptedLayers(layoutView):
+    from . import saveActiveCell,loaders
+    mainCellView  = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
     cellView       = layoutView.active_cellview()
     cellViewId     = cellView.index()
     if cellViewId==mainCellViewId:
         return
+    mainFilePath      = mainCellView.filename()
+    mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
+    mainFname         = mainFilePathSeg[-1].split(".")[0]
+    stack_path=mainFname+".stack"
+    stack=loaders.readStack(stack_path)
+    partition_stack=loaders.readStack('partition.stack')
     mainLayout= mainCellView.layout()
     cellLayout= cellView.layout()
     cell = cellView.cell
     if cell is None:
        return
+    [cell_z0,cell_z1]=partition_stack[cell.name]
+    cell_z0=float(cell_z0)
+    cell_z1=float(cell_z1)
     cellLy00Id=cell.layout().layer(0,0)
     clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy00Id)]
     cell.clear(cellLy00Id)
@@ -184,7 +193,14 @@ def copyVisibleLayers(layoutView):
           ln,dt = cellv_lif.layer, cellv_lif.datatype
           if (ln,dt)==(0,1):
              lyp.visible=False
-       if lyp.cellview()==mainCellViewId and lyp.visible:
+       if lyp.cellview()==mainCellViewId:
+          if lyp.source_name not in stack:
+            continue
+          [prefix,z0,z1,op,order]=stack[lyp.source_name]
+          z0=float(z0)
+          z1=float(z1)
+          if z0>cell_z1 or z1<cell_z0:
+            continue
           lif = mainLayout.get_info(lid)
           ln,dt = lif.layer, lif.datatype
           if (ln,dt)==(0,0):
@@ -266,10 +282,8 @@ def pointIsInLayerRegion(x,y,layerReg):
 def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
     import FreeCAD
     import Part
-    import BOPTools.JoinAPI
     from BOPTools.GeneralFuseResult import GeneralFuseResult
-    connected=BOPTools.JoinAPI.connect(FCclipEdges)
-    contWire=Part.Wire(connected.Edges)
+    contWire=Part.Wire(FCclipEdges)
     face=Part.Face(contWire)
     if not FClayerEdges:
        layerFaces=[face]
@@ -292,8 +306,11 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
        slicedContour=[]
        for i in range(NcontEdges):
          slicedEdge=gr.piecesFromSource(shapes[i+1])
-         for edge in slicedEdge:
-           slicedContour.append(edge)
+         if len(slicedEdge)>0:
+           for edge in slicedEdge:
+             slicedContour.append(edge)
+         else:
+           slicedContour.append(shapes[i+1])
        keepFaceSet=set()
        rmFaceSet=set()
        for cedge in slicedContour:
@@ -606,7 +623,7 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
 
 def makeSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
-    copyVisibleLayers(layoutView)
+    copyInterceptedLayers(layoutView)
     cellLayerShapes=getCellLayerShapes(layoutView)
     extractSubdomainDXF(layoutView,cellLayerShapes)
 
