@@ -1,25 +1,157 @@
 import pya
 
+from pya import *
+import sys 
+
+# creating a class 
+# that inherits the QDialog class 
+class ZextentDialog(pya.QDialog): 
+
+  # Dialog constructor 
+  def __init__(self, REGION_KEY,stack, parent = None): 
+      pya.QDialog.__init__(self)
+
+      self.REGION_KEY=REGION_KEY
+      self.stack=stack
+
+      # setting window title 
+      self.setWindowTitle("Region Z extent") 
+
+      # setting geometry to the window 
+      self.setGeometry(100, 100, 100, 100) 
+
+      # creating a group box 
+      self.formGroupBox = QGroupBox(REGION_KEY+" z extent") 
+      vb = pya.QVBoxLayout(self.formGroupBox)
+
+      #Create Labels
+      self.z1 = QLabel('Zstart')
+      self.z2 = QLabel('Zend')       
+
+      # creating a line edit 
+      self.nameLineEdit1 = QLineEdit(self.formGroupBox)
+      vb.addWidget(self.z1)
+      vb.addWidget(self.nameLineEdit1)
+      self.nameLineEdit2 = QLineEdit(self.formGroupBox)
+      vb.addWidget(self.z2)
+      vb.addWidget(self.nameLineEdit2)
+      if REGION_KEY in stack:
+        self.nameLineEdit1.setText(stack[REGION_KEY][0])
+        self.nameLineEdit2.setText(stack[REGION_KEY][1])
+
+      # creating a dialog button for ok and cancel 
+      self.buttonBox = QDialogButtonBox(self)#.new_buttons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+      #self.buttonBox.buttonRole(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+      self.ok = self.buttonBox.addButton(QDialogButtonBox.Ok)
+      self.cancel = self.buttonBox.addButton(QDialogButtonBox.Cancel)
+
+      #(self.buttonBox.)
+
+      # adding action when form is accepted 
+      self.cancel.clicked(lambda button: self.reject())
+
+      # addding action when form is rejected 
+      self.ok.clicked(self.getInfo)
+
+      # creating a vertical layout 
+      mainLayout = QVBoxLayout() 
+
+      # adding form group box to the layout 
+      mainLayout.addWidget(self.formGroupBox) 
+
+      # adding button box to the layout 
+      mainLayout.addWidget(self.buttonBox) 
+
+      # setting lay out 
+      self.setLayout(mainLayout) 
+
+  # get info method called when form is accepted 
+  def getInfo(self): 
+      # printing the form information 
+      self.stack[self.REGION_KEY]=[self.nameLineEdit1.text,self.nameLineEdit2.text]
+      # closing the window 
+      self.close()
+
+
+
+
 def newRegion():
     import os
+    from . import loaders
+
+
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
     cellView     = layoutView.cellview(1)
     cellViewI    = cellView.index()
     cellLayout   = cellView.layout()
-    MAX_REGION_INDEX=0
-    if os.path.exists('MAX_REGION_INDEX'): 
-        with open('MAX_REGION_INDEX','r') as f:
-            MAX_REGION_INDEX=int(f.readline())
-    with open('MAX_REGION_INDEX','w') as f:
-        f.write(f'{MAX_REGION_INDEX+1}\n')
-    cell         = cellLayout.create_cell(f"Region_{MAX_REGION_INDEX+1}")
+    REGION_KEY="Region_1"
+
+    partition_stack=loaders.readStack('partition.stack')
+    if len(partition_stack)>0:
+        REGION_KEY= "Region_"+str(1+max( [int(k.split('_')[1]) for I in partition_stack.keys()]))
+
+    GUI_Klayout = ZextentDialog(REGION_KEY,partition_stack,pya.Application.instance().main_window())
+    GUI_Klayout.exec_()
+
+    loaders.saveStack('partition.stack',partition_stack)
+
+    cell         = cellLayout.create_cell(REGION_KEY)
     cellLayer    = cellLayout.layer(0,0)
     cellView.cell= cell
     option       = pya.SaveLayoutOptions()
     layoutView   = mainWindow.current_view()
     layoutView.add_missing_layers()
     layoutView.save_as(cellViewI,f"partition.gds", option)
+
+
+def name2index(name):
+    I=0
+    l=len(name)
+    for i in range(l):
+       if name[-(i+1):].isdigit():
+         I=int(name[-(i+1):])
+       else:
+         exit
+    return str(I)
+
+def editRegion():
+    import os
+    from . import loaders
+
+    mainWindow   = pya.Application.instance().main_window()
+    layoutView   = pya.Application.instance().main_window().current_view()
+    cellView     = layoutView.cellview(1)
+    cell         = cellView.cell
+    cellLayout   = cellView.layout()
+    REGION_KEY=cell.name
+
+    partition_stack=loaders.readStack('partition.stack')
+
+    GUI_Klayout = ZextentDialog(REGION_KEY,partition_stack,pya.Application.instance().main_window())
+    GUI_Klayout.exec_()
+#    print("Zstart : {0}".format(partition_stack[REGION_KEY][0])) 
+#    print("Zend : {0}".format(partition_stack[REGION_KEY][1]))         
+
+    loaders.saveStack('partition.stack',partition_stack)
+
+
+def deleteRegion():
+    import os
+    from . import loaders
+
+    mainWindow   = pya.Application.instance().main_window()
+    layoutView   = pya.Application.instance().main_window().current_view()
+    cellView     = layoutView.cellview(1)
+    cell         = cellView.cell
+    cellLayout   = cellView.layout()
+    REGION_KEY=cell.name
+    cellI=cell.cell_index()
+    cellLayout.delete_cell(cellI)
+    partition_stack=loaders.readStack('partition.stack')
+    if REGION_KEY in partition_stack:
+      del partition_stack[REGION_KEY]
+      loaders.saveStack('partition.stack',partition_stack)
 
 
 def copyVisibleLayers(layoutView):
@@ -232,6 +364,7 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac):
 
 
 def create_3DSubdomain(subdomain_path,stack_path,importFac):
+   from . import loaders
    import ezdxf
    import os,platform
    from operator import itemgetter
@@ -269,17 +402,10 @@ def create_3DSubdomain(subdomain_path,stack_path,importFac):
 
    logger = FreeCAD.Logger('layout2fc')
    
-   stack={}
-   with open(stack_path, 'r') as f:
-     for line in f:
-        if len(line.strip()) > 0:
-          line=line.split('#')[0]
-          [ldata,zdata]=line.split(':')
-          stack[ldata]=zdata.split()
+   stack=loaders.readStack(stack_path)
    stack_scale=1
    if 'scale' in stack.keys():
         stack_scale=float(stack['scale'][0])
-
 
    FCdoc=new_FCdocument(subdomain_path)
    DXFdoc=ezdxf.readfile(subdomain_path+".dxf")

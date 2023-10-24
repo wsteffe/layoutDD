@@ -18,7 +18,7 @@ def makeLayerMap(layoutView,cellView):
     for name in layerNames:
         ln=ln+1
         layerMap[name]=[ln, dt]
-    return layerMap
+    return ln,layerMap
 
 def cleanLayers(layoutView,cellView):
     itr = layoutView.begin_layers()
@@ -30,11 +30,11 @@ def cleanLayers(layoutView,cellView):
             else:
                 itr.next()
 
-def mapLayers():
+def mapLayers(stack):
     layoutView = pya.Application.instance().main_window().current_view()
     cellView   = layoutView.active_cellview()
     layout     = cellView.layout()
-    layerMap=makeLayerMap(layoutView,cellView)
+    lnum,layerMap=makeLayerMap(layoutView,cellView)
     itr = layoutView.begin_layers()
     while not itr.at_end():
         lyp = itr.current()
@@ -47,5 +47,11 @@ def mapLayers():
         itr.next()
     cleanLayers(layoutView,cellView)
     layoutView.add_missing_layers()
+    for lnm in stack.keys():
+       if lnm not in layerMap:
+          lnum=lnum+1
+          dt=0
+          layerMap[lnm]=[lnum, dt]
+    return layerMap
 
 

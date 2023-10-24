@@ -12,7 +12,30 @@ def saveFlatDXF(fname):
     importer.import_entities(exploded)
     tdoc.saveas(fname+"_flat.dxf")
 
+
+def saveStack(stack_path,stack):
+    with open(stack_path, 'w') as f:
+       for I in stack.keys():
+          f.write(I+":")
+          for j in range(len(stack[I])):
+             f.write("  "+stack[I][j])
+          f.write('\n')
+
+
+def readStack(stack_path):
+    import os
+    stack={}
+    if os.path.exists(stack_path):
+      with open(stack_path, 'r') as f:
+        for line in f:
+          if len(line.strip()) > 0:
+            line=line.split('#')[0]
+            [ldata,zdata]=line.split(':')
+            stack[ldata]=zdata.split()
+    return stack
+
 def importLayout():
+    global layerMap
     import os
     from . import mapLayers, saveActiveCell
     mainWindow    = pya.Application.instance().main_window()
@@ -27,10 +50,18 @@ def importLayout():
     filePath      = cellView.active().filename()
     filePathSeg   = filePath.replace("\\", "/").split("/")
     fname,fext    = os.path.splitext(filePathSeg[-1])
+    stack_path=fname+".stack"
+    if not os.path.exists(stack_path):
+       pya.MessageBox.info("Information", "Imported Layout must be associated with stack file", pya.MessageBox.Ok)
+       return
+    stack=readStack(stack_path)
+    stack_scale=1
+    if 'scale' in stack.keys():
+        stack_scale=float(stack['scale'][0])  
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
     if fext.lower() == ".dxf":
-      mapLayers.mapLayers()
+      layerMap=mapLayers.mapLayers(stack)
       saveActiveCell.saveActiveCell()
       saveFlatDXF(fname)
     partitionPath="partition.gds"
@@ -43,9 +74,8 @@ def importLayout():
       option     = pya.SaveLayoutOptions()
       layoutView = mainWindow.current_view()
       layoutView.save_as(cellIndex,partitionPath, option)
-      MAX_REGION_INDEX=0
-      with open('MAX_REGION_INDEX','w') as f:
-        f.write(f'{MAX_REGION_INDEX}\n')
+      partition_stack={}
+      saveStack('partition.stack',partition_stack)
     else:
       layoutView.load_layout(partitionPath,2)
 
@@ -58,7 +88,6 @@ def openProject():
     cellView     = layoutView.cellview(cellViewId)
     lypPath      = gdsPath.split(".")[0]+".lyp"
     layoutView.load_layer_props(lypPath)
-    MAX_REGION_INDEX=0
     partitionPath="partition.gds"
     partitionLypPath="partition.lyp"
     if os.path.exists(partitionPath):

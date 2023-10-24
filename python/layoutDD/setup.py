@@ -1,6 +1,7 @@
 import pya
 
 ACTIONS = []
+layerMap=None
 
 def registerToolbarItems():
 
@@ -39,9 +40,21 @@ def registerToolbarItems():
   ACTIONS.append(act)
 
   act = pya.Action()
+  act.title = "Edit Region Stack"
+  act.on_triggered(subdomains.editRegion)
+  menu.insert_item(s1+".newRegion+", "editRegion", act)
+  ACTIONS.append(act)
+
+  act = pya.Action()
+  act.title = "Delete Region"
+  act.on_triggered(subdomains.deleteRegion)
+  menu.insert_item(s1+".editRegion+", "deleteRegion", act)
+  ACTIONS.append(act)
+
+  act = pya.Action()
   act.title = "Make Subdomain"
   act.on_triggered(subdomains.makeSubdomain)
-  menu.insert_item(s1+".newRegion+", "makeSubdomain", act)
+  menu.insert_item(s1+".deleteRegion+", "makeSubdomain", act)
   ACTIONS.append(act)
 
   act = pya.Action()
