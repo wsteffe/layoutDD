@@ -500,8 +500,6 @@ def create_3DSubdomain(cellName,stack_path,importFac):
          FClayerEdges=FClayerEdgesFromName[lname]
       else:
          FClayerEdges=[]
-      layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
-      layerComp.Label=prefix+"_"+lname
       if opi=='vsurf':
          t=None
       elif opi=='add' or opi=='ins':
@@ -517,10 +515,14 @@ def create_3DSubdomain(cellName,stack_path,importFac):
              else:
                comp.add(solid)
          if comp != None:
+           layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
+           layerComp.Label=prefix+"_"+lname
            layerComp.Shape=comp
            layerComp.Placement=pl
            layerComp.Visibility=True
            part.addObject(layerComp)
+         else:
+           layerComp=None
       else:
          layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
          comp=None
@@ -530,11 +532,19 @@ def create_3DSubdomain(cellName,stack_path,importFac):
            else:
              comp.add(face)
          if comp != None:
+           layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
+           layerComp.Label=prefix+"_"+lname
            layerComp.Shape=comp
            layerComp.Placement=pl
            layerComp.Visibility=True
            part.addObject(layerComp)
+         else:
+           layerComp=None
       if opi=='ins' or opi=='cut' and layerComp.Shape.Solids:
+           if not layerComp:
+                  continue
+           if not layerComp.Shape.Solids:
+                  continue
            for (lorderj,lnamej) in layer_order_and_name:
               if lorderj==lorder:
                  break
