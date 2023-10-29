@@ -3,6 +3,9 @@ import pya
 from pya import *
 import sys 
 
+mergedLayersInDXF=False
+fuzzyTolerance=1.e-5
+
 # creating a class 
 # that inherits the QDialog class 
 class ZextentDialog(pya.QDialog): 
@@ -279,19 +282,79 @@ def pointIsInLayerRegion(x,y,layerReg):
    else:
       return False
 
+def getPointInFace(face,importFac):
+    import FreeCAD
+    import Part
+    surf =face.Surface
+    u0, u1, v0, v1 = surf.bounds()
+    u = (u0 + u1)/2
+    v = (v0 + v1)/2
+    n= surf.normal(u, v)
+#    n = face.normalAt(0,0)
+    if face.Wires:
+        edges=face.Wires[0].Edges
+        orientation=face.Wires[0].Orientation
+    else:
+        edges=face.Edges
+        orientation="Forward"
+    minRadius=10.e10
+    eddgeMinR=None
+    for edge in edges:
+        sgn=1 if edge.Orientation == orientation else -1
+        if isinstance(edge.Curve, Part.Circle):
+           if edge.Closed:
+               return edge.Curve.Center
+           elif edge.Curve.Radius<minRadius:
+               minRadius=edge.Curve.Radius
+               eddgeMinR=edge
+        if isinstance(edge.Curve,(Part.Line, Part.LineSegment)):
+           t = edge.Curve.tangent((edge.ParameterRange[0]+edge.ParameterRange[1])/2)[0]
+           p = edge.Curve.value((edge.ParameterRange[0]+edge.ParameterRange[1])/2)
+           bn=n.cross(t)
+           return p+sgn*bn*2/importFac
+    if eddgeMinR:
+        t = eddgeMinR.Curve.tangent((eddgeMinR.ParameterRange[0]+eddgeMinR.ParameterRange[1])/2)[0]
+        p = eddgeMinR.Curve.value((eddgeMinR.ParameterRange[0]+eddgeMinR.ParameterRange[1])/2)
+        bn=n.cross(t)
+        return p+sgn*bn*2/importFac
+    return None
 
-def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly=False):
+def mergeLayerFaces(layerFaces):
+    from BOPTools.ShapeMerge import mergeShapes
+    msh=mergeShapes(layerFaces)
+    layerFaces=[]
+    for shell in msh.Shells:
+      face=None
+      if len(shell.Faces)>1:
+        fsh=shell.Faces[0].fuse(shell.Faces[1:])
+        rsh=fsh.removeSplitter()
+        if len(rsh.Faces)==1:
+          face=rsh.Faces[0]
+        else:
+          face=rsh.Faces
+      elif shell.Faces:
+        face=shell.Faces[0]
+      if face:
+        layerFaces.append(face)
+    return layerFaces
+
+
+def makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=False):
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
-    contWire=Part.Wire(FCclipEdges)
+    contWire=Part.Wire(FCclipShape.Edges)
     face=Part.Face(contWire)
     if useAllClipPoly:
        layerFaces=[face]
        return layerFaces
     layerReg=evalLayerRegion(lname)
-    if not FClayerEdges:
-       cedge=FCclipEdges[0]
+    hasFClayerEdges=False
+    if FClayerShape:
+        if FClayerShape.Edges:
+            hasFClayerEdges=True
+    if not hasFClayerEdges:
+       cedge=FCclipShape.Edges[0]
        P1=cedge.Vertexes[0].Point
        P2=cedge.Vertexes[1].Point
        Pc=(P1+P2)/2
@@ -304,10 +367,10 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly=False
     else:
        shapes=[face]
        NcontEdges=0
-       for edge in FCclipEdges:
+       for edge in FCclipShape.Edges:
          shapes.append(edge)
          NcontEdges=NcontEdges+1
-       for edge in FClayerEdges:
+       for edge in FClayerShape.Edges:
          shapes.append(edge)
        tolerance=0.0
        pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
@@ -316,6 +379,7 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly=False
        tbdFaceSet=set()
        for face in slicedFace:
          tbdFaceSet.add(face)
+         p=getPointInFace(face,importFac)
        slicedContour=[]
        for i in range(NcontEdges):
          slicedEdge=gr.piecesFromSource(shapes[i+1])
@@ -390,6 +454,58 @@ def makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly=False
                if face in tbdFaceSet:
                    tbdFaceSet.remove(face)
        layerFaces=[ f for f in keepFaceSet]
+       layerFaces=mergeLayerFaces(layerFaces)
+    return layerFaces
+
+
+def makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=False):
+    import FreeCAD
+    import Part
+    from BOPTools.GeneralFuseResult import GeneralFuseResult
+    contWire=Part.Wire(FCclipShape.Edges)
+    face=Part.Face(contWire)
+    if useAllClipPoly:
+       layerFaces=[face]
+       return layerFaces
+    layerReg=evalLayerRegion(lname)
+    hasFClayerEdges=False
+    if FClayerShape:
+        if FClayerShape.Edges:
+            hasFClayerEdges=True
+    if not hasFClayerEdges:
+       cedge=FCclipShape.Edges[0]
+       P1=cedge.Vertexes[0].Point
+       P2=cedge.Vertexes[1].Point
+       Pc=(P1+P2)/2
+       xc=Pc[0]*importFac
+       yc=Pc[1]*importFac
+       layerFaces=[]
+       if layerReg != None:
+          if pointIsInLayerRegion(xc,yc,layerReg):
+             layerFaces.append(face)
+    else:
+      shapes=[face]
+      if FClayerShape:
+        for w in FClayerShape.Wires:
+           f=Part.Face(w)
+           shapes.append(face.common(f))
+      if len(shapes)>1:
+#       pieces=shapes[0].multiFuse(shapes[1:],fuzzyTolerance)
+       pieces, map = shapes[0].generalFuse(shapes[1:], fuzzyTolerance)          
+       if pieces:
+          slicedFace=pieces.Faces
+       elif shapes:
+          slicedFace=shapes[0].Faces
+       else:
+          slicedFace=[]
+       layerFaces=[]
+       for face in slicedFace:
+         Pc=getPointInFace(face,importFac)
+         xc=Pc[0]*importFac
+         yc=Pc[1]*importFac
+         if pointIsInLayerRegion(xc,yc,layerReg):
+            layerFaces.append(face)
+    layerFaces=mergeLayerFaces(layerFaces)
     return layerFaces
 
 
@@ -448,7 +564,7 @@ def create_3DSubdomain(cellName,stack_path,importFac):
    paramPath = "User parameter:BaseApp/Preferences/Mod/layoutDD"
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
-   params.SetBool('connectEdges', False)
+   params.SetBool('connectEdges', True)
    params.SetFloat('dxfScaling', 0.001)
    Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
    FClayers = FCdoc.Objects
@@ -473,13 +589,12 @@ def create_3DSubdomain(cellName,stack_path,importFac):
 
    layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
 
-   FClayerEdgesFromName={}
+   FClayerShapeFromName={}
    for layer in FClayers:
-      FClayerEdgesFromName[layer.Name]=layer.Shape.Edges
+      FClayerShapeFromName[layer.Name]=layer.Shape
       FCdoc.removeObject(layer.Name)
-
-   FCclipEdges = FClayerEdgesFromName["ClippingPolygon"]
-   if not FCclipEdges:
+   FCclipShape = FClayerShapeFromName["ClippingPolygon"]
+   if not FCclipShape.Edges:
       return
 
    for (lorder,lname) in layer_order_and_name:
@@ -496,15 +611,21 @@ def create_3DSubdomain(cellName,stack_path,importFac):
       pl=FreeCAD.Placement()
       pl.move(FreeCAD.Vector(0,0,z0i*stack_scale))
       label=prefix+"_"+lname
-      if lname in FClayerEdgesFromName.keys():
-         FClayerEdges=FClayerEdgesFromName[lname]
+      if lname in FClayerShapeFromName.keys():
+         FClayerShape=FClayerShapeFromName[lname]
+         if FClayerShape.Edges:
+            hasFClayerEdges=True
       else:
-         FClayerEdges=[]
+         FClayerShape=None
+         hasFClayerEdges=False
       if opi=='vsurf':
          t=None
       elif opi=='add' or opi=='ins':
-         useAllClipPoly=len(FClayerEdges)==0 and prefix=="DIEL"
-         layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac,useAllClipPoly)
+         useAllClipPoly=not hasFClayerEdges and prefix=="DIEL"
+         if mergedLayersInDXF:
+           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
+         else:
+           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
          comp=None
          hvec=FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)
          for face in layerFaces:
@@ -524,7 +645,7 @@ def create_3DSubdomain(cellName,stack_path,importFac):
          else:
            layerComp=None
       else:
-         layerFaces=makeLayerFaces(lname,FCclipEdges,FClayerEdges,importFac)
+         layerFaces=makeLayerFaces(lname,FCclipShape,FClayerShape,importFac)
          comp=None
          for face in layerFaces:
            if comp==None:
@@ -609,7 +730,7 @@ def add_clippingPolygon(poly,importFac,cellLayerShapes,subdomain_path):
 
 
 
-def extractSubdomainDXF(layoutView,cellLayerShapes):
+def extractSubdomainDXF(layoutView,cellLayerShapes,importFac):
     from ezdxf.addons import iterdxf
     from ezdxf import bbox
     mainCellView  = layoutView.cellview(0)
@@ -623,11 +744,6 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
         return
     if cell is None:
        return
-    if mainLayout.technology() is not None:
-       dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
-       importFac = dxf_unit/mainLayout.dbu
-    else:
-       importFac=1
     mainFilePath      = mainCellView.filename()
     mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
     mainFname         = mainFilePathSeg[-1].split(".")[0]
@@ -659,15 +775,28 @@ def extractSubdomainDXF(layoutView,cellLayerShapes):
       cellLy01Id=cell.layout().layer(0,1)
       clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy01Id)]
       add_clippingPolygon(clypPolygons[0],importFac,cellLayerShapes,subdomain_path)
-      stack_path=mainFname+".stack"
-      create_3DSubdomain(cell.name,stack_path,importFac)
 
 
 def makeSubdomain():
-    layoutView  = pya.Application.instance().main_window().current_view()
+    layoutView        = pya.Application.instance().main_window().current_view()
+    mainCellView      = layoutView.cellview(0)
+    mainLayout        = mainCellView.layout()
+    mainFilePath      = mainCellView.filename()
+    mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
+    mainFname         = mainFilePathSeg[-1].split(".")[0]
+    if mainLayout.technology() is not None:
+       dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
+       importFac = dxf_unit/mainLayout.dbu
+    else:
+       importFac=1
+    cellView= layoutView.active_cellview()
+    cell = cellView.cell
     copyInterceptedLayers(layoutView)
     cellLayerShapes=getCellLayerShapes(layoutView)
-    extractSubdomainDXF(layoutView,cellLayerShapes)
+    extractSubdomainDXF(layoutView,cellLayerShapes,importFac)
+    stack_path=mainFname+".stack"
+    create_3DSubdomain(cell.name,stack_path,importFac)
+
 
 def deleteCellLayers(layoutView):
     from . import saveActiveCell

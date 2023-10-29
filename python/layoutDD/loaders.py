@@ -34,6 +34,14 @@ def readStack(stack_path):
             stack[ldata]=zdata.split()
     return stack
 
+def mergeLayers(mainLayout):
+    for li in mainLayout.layer_indexes():
+        topcell=mainLayout.top_cell()
+        region=pya.Region(topcell.begin_shapes_rec(li))
+        region.merge()
+        topcell.layout().clear_layer(li)
+        topcell.shapes(li).insert(region)
+
 def importLayout():
     global layerMap
     import os
@@ -44,6 +52,7 @@ def importLayout():
       return
     cellView      = layoutView.active_cellview()
     mainLayout    = cellView.layout()
+#    mergeLayers(mainLayout)
     if mainLayout.technology() is None:
       pya.MessageBox.info("Information", "Imported Layout must be associated with a Technology", pya.MessageBox.Ok)
       return
