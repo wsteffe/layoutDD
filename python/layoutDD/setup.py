@@ -34,33 +34,45 @@ def registerToolbarItems():
   ACTIONS.append(act)
 
   act = pya.Action()
-  act.title = "Create New Region"
+  act.title = "New Region"
   act.on_triggered(subdomains.newRegion)
   menu.insert_item(s1+".openProject+", "newRegion", act)
   ACTIONS.append(act)
 
   act = pya.Action()
+  act.title = "New WGP in Region"
+  act.on_triggered(subdomains.newWGP)
+  menu.insert_item(s1+".newRegion+", "newWGP", act)
+  ACTIONS.append(act)
+
+  act = pya.Action()
   act.title = "Edit Region Stack"
   act.on_triggered(subdomains.editRegion)
-  menu.insert_item(s1+".newRegion+", "editRegion", act)
+  menu.insert_item(s1+".newWGP+", "editRegion", act)
+  ACTIONS.append(act)
+
+  act = pya.Action()
+  act.title = "Edit WGP"
+  act.on_triggered(subdomains.editWGP)
+  menu.insert_item(s1+".editRegion+", "editWGP", act)
   ACTIONS.append(act)
 
   act = pya.Action()
   act.title = "Delete Region"
   act.on_triggered(subdomains.deleteRegion)
-  menu.insert_item(s1+".editRegion+", "deleteRegion", act)
+  menu.insert_item(s1+".editWGP+", "deleteRegion", act)
+  ACTIONS.append(act)
+
+  act = pya.Action()
+  act.title = "Delete WGP"
+  act.on_triggered(subdomains.deleteWGP)
+  menu.insert_item(s1+".deleteRegion+", "deleteWGP", act)
   ACTIONS.append(act)
 
   act = pya.Action()
   act.title = "Make Subdomain"
   act.on_triggered(subdomains.makeSubdomain)
-  menu.insert_item(s1+".deleteRegion+", "makeSubdomain", act)
-  ACTIONS.append(act)
-
-  act = pya.Action()
-  act.title = "Delete Subdomain"
-  act.on_triggered(subdomains.deleteSubdomain)
-  menu.insert_item(s1+".makeSubdomain+", "deleteSubdomain", act)
+  menu.insert_item(s1+".deleteWGP+", "makeSubdomain", act)
   ACTIONS.append(act)
 
 
