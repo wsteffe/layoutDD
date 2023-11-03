@@ -13,6 +13,8 @@ def registerToolbarItems():
   reload(loaders)
   from . import subdomains
   reload(subdomains)
+  from . import globalVar
+  reload(globalVar)
 
   menu = pya.Application.instance().main_window().menu()
   act = pya.Action()

@@ -43,9 +43,8 @@ def mergeLayers(mainLayout):
         topcell.shapes(li).insert(region)
 
 def importLayout():
-    global layerMap
     import os
-    from . import mapLayers, saveActiveCell
+    from . import mapLayers, saveActiveCell, globalVar
     mainWindow    = pya.Application.instance().main_window()
     layoutView    = pya.Application.instance().main_window().current_view()
     if layoutView==None:
@@ -63,14 +62,14 @@ def importLayout():
     if not os.path.exists(stack_path):
        pya.MessageBox.info("Information", "Imported Layout must be associated with stack file", pya.MessageBox.Ok)
        return
-    stack=readStack(stack_path)
+    globalVar.stack=readStack(stack_path)
     stack_scale=1
-    if 'scale' in stack.keys():
-        stack_scale=float(stack['scale'][0])  
+    if 'scale' in globalVar.stack.keys():
+        stack_scale=float(globalVar.stack['scale'][0])  
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
     if fext.lower() == ".dxf":
-      layerMap=mapLayers.mapLayers(stack)
+      layerMap=mapLayers.mapLayers(globalVar.stack)
       saveActiveCell.saveActiveCell()
       saveFlatDXF(fname)
     partitionPath="partition.gds"
@@ -83,13 +82,14 @@ def importLayout():
       option     = pya.SaveLayoutOptions()
       layoutView = mainWindow.current_view()
       layoutView.save_as(cellIndex,partitionPath, option)
-      partition_stack={}
-      saveStack('partition.stack',partition_stack)
+      globalVar.partition_stack={}
+      saveStack('partition.stack',globalVar.partition_stack)
     else:
       layoutView.load_layout(partitionPath,2)
 
 def openProject():
     import os
+    from . import globalVar
     gdsPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "GDS2 (*.gds)")
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())
@@ -99,6 +99,11 @@ def openProject():
     layoutView.load_layer_props(lypPath)
     partitionPath="partition.gds"
     partitionLypPath="partition.lyp"
+    mainFilePath    = cellView.filename()
+    mainFilePathSeg = mainFilePath.replace("\\", "/").split("/")
+    mainFname       = mainFilePathSeg[-1].split(".")[0]
+    globalVar.stack=readStack(mainFname+".stack")
+    globalVar.partition_stack=readStack('partition.stack')
     if os.path.exists(partitionPath):
         layoutView.load_layout(partitionPath,2)
         if os.path.exists(partitionLypPath):
