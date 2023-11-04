@@ -729,6 +729,7 @@ def create_3DSubdomain(cellName,importFac):
          else:
            layerComp=None
       else:
+         useAllClipPoly=not hasFClayerEdges and prefix=="WGP"
          if globalVar.mergedLayersInDXF:
            layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
          else:
@@ -798,19 +799,56 @@ def create_3DSubdomain(cellName,importFac):
    return FCdoc
 
 
-def finalizeRegionDXF(poly,importFac,interceptedLayers,subdomain_path):
+def finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path):
    import ezdxf
    import os
    from . import globalVar
-   points=[]
-   for pt in poly.each_point_hull():
-      x, y = pt.x/importFac, pt.y/importFac
-      points.append((x,y))
+   cellView       = layoutView.active_cellview()
+   cellViewId     = cellView.index()
+   cellLayout     = cellView.layout()
+   cell = cellView.cell
+
+   REGION_KEY=cell.name
+   wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
+   WGNum=0
+   if len(wgp_keys)>0:
+        WGNum=max([int(k.split('_')[3]) for k in wgp_keys])
+
+   layerId=[]
+   layerName=[]
+   layerId.append(cell.layout().layer(0,0))
+   layerName.append("ClippingPolygon")
+   for i in range(WGNum):
+     lid =cellLayout.layer(i+1, 0)
+     layerId.append(lid)
+     layerName.append(f"WGP_{i+1}")
+
    doc=ezdxf.readfile(subdomain_path+".dxf")
-   doc.layers.add(name="ClippingPolygon", color=7, linetype="CONTINUOUS")
    msp = doc.modelspace()
-   lwp = msp.add_lwpolyline(points, dxfattribs={"layer": "ClippingPolygon"})
-   lwp.closed=True
+   for i in range(WGNum+1):
+     if layerId[i]<0:
+        continue
+     points=[]
+     tmp= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,layerId[i]) if itr.shape().is_polygon()]
+     if tmp:
+        poly=tmp[0]
+        for pt in poly.each_point_hull():
+           x, y = pt.x/importFac, pt.y/importFac
+           points.append((x,y))
+        closed=True
+     else:
+        tmp= [itr.shape().path.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,layerId[i]) if itr.shape().is_path()]
+        if tmp:
+           path=tmp[0]
+           for pt in path.each_point():
+              x, y = pt.x/importFac, pt.y/importFac
+              points.append((x,y))
+           closed=False
+     if points:
+        doc.layers.add(name=layerName[i], color=7, linetype="CONTINUOUS")
+        lwp = msp.add_lwpolyline(points, dxfattribs={"layer": layerName[i]})
+        lwp.closed=closed
+
    for layername in interceptedLayers:
        if layername in globalVar.stack and not layername in doc.layers:
           doc.layers.add(name=layername)
@@ -863,8 +901,7 @@ def extractSubdomainDXF(layoutView,importFac):
     finally:
       exporter.close()
       mainDoc.close()
-      clypPolygons= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,cellLy00Id)]
-      finalizeRegionDXF(clypPolygons[0],importFac,interceptedLayers,subdomain_path)
+      finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path)
 
 
 def makeSubdomain():
