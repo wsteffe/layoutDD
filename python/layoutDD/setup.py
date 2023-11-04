@@ -9,11 +9,11 @@ def registerToolbarItems():
   
   import os
   from  importlib import reload 
-  from . import loaders
+  import loaders
   reload(loaders)
-  from . import subdomains
+  import subdomains
   reload(subdomains)
-  from . import globalVar
+  import globalVar
   reload(globalVar)
 
   menu = pya.Application.instance().main_window().menu()

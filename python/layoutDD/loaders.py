@@ -44,7 +44,7 @@ def mergeLayers(mainLayout):
 
 def importLayout():
     import os
-    from . import mapLayers, saveActiveCell, globalVar
+    import mapLayers, saveActiveCell, globalVar
     mainWindow    = pya.Application.instance().main_window()
     layoutView    = pya.Application.instance().main_window().current_view()
     if layoutView==None:
@@ -89,7 +89,7 @@ def importLayout():
 
 def openProject():
     import os
-    from . import globalVar
+    import globalVar
     gdsPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "GDS2 (*.gds)")
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.view(mainWindow.create_view())

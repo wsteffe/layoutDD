@@ -77,7 +77,7 @@ class ZextentDialog(pya.QDialog):
 
 def newRegion():
     import os
-    from . import loaders,globalVar
+    import loaders,globalVar
 
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
@@ -115,7 +115,7 @@ def name2index(name):
 
 def editRegion():
     import os
-    from . import loaders,globalVar
+    import loaders,globalVar
 
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
@@ -134,7 +134,7 @@ def editRegion():
 
 def newWGP():
     import os
-    from . import saveActiveCell,loaders,globalVar
+    import saveActiveCell,loaders,globalVar
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.current_view()
     cellView     = layoutView.cellview(1)
@@ -163,7 +163,7 @@ def newWGP():
 
 def editWGP():
     import os
-    from . import saveActiveCell,loaders,globalVar
+    import saveActiveCell,loaders,globalVar
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.current_view()
     cellView     = layoutView.cellview(1)
@@ -191,7 +191,7 @@ def editWGP():
 
 def deleteWGP():
     import os
-    from . import saveActiveCell,loaders,globalVar
+    import saveActiveCell,loaders,globalVar
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = mainWindow.current_view()
     cellView     = layoutView.cellview(1)
@@ -220,7 +220,7 @@ def deleteWGP():
 
 def deleteRegion():
     import os
-    from . import loaders, globalVar
+    import loaders, globalVar
 
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
@@ -238,7 +238,7 @@ def deleteRegion():
 
 
 def interceptedLayer(layerName,cellName):
-    from . import globalVar
+    import globalVar
     if layerName not in globalVar.stack:
         return False
     if cellName not in globalVar.partition_stack:
@@ -249,7 +249,7 @@ def interceptedLayer(layerName,cellName):
 
 
 def copyInterceptedLayers(layoutView):
-    from . import saveActiveCell, globalVar
+    import saveActiveCell, globalVar
     mainCellView  = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
     cellView       = layoutView.active_cellview()
@@ -540,7 +540,7 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
-    from . import globalVar
+    import globalVar
     contWire=Part.Wire(FCclipShape.Edges)
     face=Part.Face(contWire)
     if useAllClipPoly:
@@ -603,7 +603,7 @@ def create_3DSubdomain(cellName,importFac):
    import FreeCAD
    import Import,Part
    from BOPTools.GeneralFuseResult import GeneralFuseResult
-   from . import globalVar
+   import globalVar
 #   homedir = os.path.expanduser("~")
 #   osType=platform.system()
 #   if osType=='Windows':
@@ -802,7 +802,7 @@ def create_3DSubdomain(cellName,importFac):
 def finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path):
    import ezdxf
    import os
-   from . import globalVar
+   import globalVar
    cellView       = layoutView.active_cellview()
    cellViewId     = cellView.index()
    cellLayout     = cellView.layout()
@@ -905,7 +905,7 @@ def extractSubdomainDXF(layoutView,importFac):
 
 
 def makeSubdomain():
-    from . import loaders
+    import loaders
     layoutView        = pya.Application.instance().main_window().current_view()
     mainCellView      = layoutView.cellview(0)
     mainLayout        = mainCellView.layout()
@@ -922,7 +922,7 @@ def makeSubdomain():
 
 
 def deleteCellLayers(layoutView):
-    from . import saveActiveCell
+    import saveActiveCell
     mainCellView   = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
     cellView       = layoutView.active_cellview()
