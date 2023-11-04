@@ -639,12 +639,34 @@ def create_3DSubdomain(cellName,importFac):
    cell_z0=float(cell_z0)
    cell_z1=float(cell_z1)
 
+   stack=globalVar.stack
+
+   layer_order_and_name= []
+   layerNames=set()
+   DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
+   for layer in DXFdoc.layers:
+      layerNames.add(layer.dxf.name)
+
+   l=len(cellName)
+   for k in globalVar.partition_stack.keys():
+      if not k.startswith(cellName) or len(k.split('_'))<=3:
+         continue
+      lname=k[l+1:]
+      if lname not in stack.keys() and lname in layerNames and lname.startswith("WGP_"):
+         op=None
+         if globalVar.partition_stack[k][0]==globalVar.partition_stack[k][1]:
+            op="hsurf"
+         elif globalVar.partition_stack[k][0]<globalVar.partition_stack[k][1]:
+            op="vsurf"
+         if op:
+            lorder="0"
+            stack[lname]=[None, globalVar.partition_stack[k][0],globalVar.partition_stack[k][1], op, lorder]
+
    stack_scale=1
-   if 'scale' in globalVar.stack.keys():
-        stack_scale=float(globalVar.stack['scale'][0])
+   if 'scale' in stack.keys():
+        stack_scale=float(stack['scale'][0])
 
    FCdoc=new_FCdocument(subdomain_path)
-   DXFdoc=ezdxf.readfile(subdomain_path+".dxf")
    paramPath = "User parameter:BaseApp/Preferences/Mod/layoutDD"
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
@@ -658,18 +680,17 @@ def create_3DSubdomain(cellName,importFac):
    part=FCdoc.addObject("App::Part", partName)
 
    layer_order_and_name= []
-   layerNames=set()
    for layer in DXFdoc.layers:
       lname=layer.dxf.name
-      layerNames.add(lname)
-      if lname not in globalVar.stack.keys():
+      if lname not in stack.keys():
             continue
-      layer_order_and_name.append((globalVar.stack[lname][4],lname))
+      layer_order_and_name.append((stack[lname][4],lname))
 
-   for lname in globalVar.stack.keys():
+   for lname in stack.keys():
        if lname not in layerNames:
-          if len(globalVar.stack[lname]) >3:
-              layer_order_and_name.append((globalVar.stack[lname][4],lname))
+          if len(stack[lname]) >3:
+              layer_order_and_name.append((stack[lname][4],lname))
+
 
    layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
 
@@ -682,19 +703,21 @@ def create_3DSubdomain(cellName,importFac):
       return
 
    for (lorder,lname) in layer_order_and_name:
-      if lname not in globalVar.stack.keys():
+      if lname not in stack.keys():
             continue
-      [prefix,z0i,z1i,opi,orderi]=globalVar.stack[lname]
+      [prefix,z0i,z1i,opi,orderi]=stack[lname]
       z0i=float(z0i)
       z1i=float(z1i)
       z0i=max(cell_z0,z0i)
       z1i=min(cell_z1,z1i)
       if z1i<z0i:
           continue
-      label=prefix+"_"+lname
+      if prefix:
+         label=prefix+"_"+lname
+      else:
+         label=lname
       pl=FreeCAD.Placement()
       pl.move(FreeCAD.Vector(0,0,z0i*stack_scale))
-      label=prefix+"_"+lname
       if lname in FClayerShapeFromName.keys():
          FClayerShape=FClayerShapeFromName[lname]
          if FClayerShape.Edges:
@@ -702,15 +725,25 @@ def create_3DSubdomain(cellName,importFac):
       else:
          FClayerShape=None
          hasFClayerEdges=False
+      comp=None
       if opi=='vsurf':
-         t=None
+         contWire=Part.Wire(FCclipShape.Edges)
+         face=Part.Face(contWire)
+         hvec=FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)
+         for e in FClayerShape.Edges:
+           e=e.common(face)
+           ext=e.extrude(hvec)
+           for f in ext.Faces:
+             if comp==None:
+               comp=Part.Compound(f)
+             else:
+               comp.add(f)
       elif opi=='add' or opi=='ins':
          useAllClipPoly=not hasFClayerEdges and prefix=="DIEL"
          if globalVar.mergedLayersInDXF:
            layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
          else:
            layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
-         comp=None
          hvec=FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)
          for face in layerFaces:
            pad=face.extrude(hvec)
@@ -719,17 +752,8 @@ def create_3DSubdomain(cellName,importFac):
                comp=Part.Compound(solid)
              else:
                comp.add(solid)
-         if comp != None:
-           layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
-           layerComp.Label=prefix+"_"+lname
-           layerComp.Shape=comp
-           layerComp.Placement=pl
-           layerComp.Visibility=True
-           part.addObject(layerComp)
-         else:
-           layerComp=None
       else:
-         useAllClipPoly=not hasFClayerEdges and prefix=="WGP"
+         useAllClipPoly=not hasFClayerEdges
          if globalVar.mergedLayersInDXF:
            layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
          else:
@@ -740,15 +764,19 @@ def create_3DSubdomain(cellName,importFac):
               comp=Part.Compound(face)
            else:
              comp.add(face)
-         if comp != None:
+      if comp != None:
+         if prefix:
            layerComp=FCdoc.addObject("Part::Compound",prefix+"_"+lname)
            layerComp.Label=prefix+"_"+lname
-           layerComp.Shape=comp
-           layerComp.Placement=pl
-           layerComp.Visibility=True
-           part.addObject(layerComp)
          else:
-           layerComp=None
+           layerComp=FCdoc.addObject("Part::Compound",lname)
+           layerComp.Label=lname
+         layerComp.Shape=comp
+         layerComp.Placement=pl
+         layerComp.Visibility=True
+         part.addObject(layerComp)
+      else:
+         layerComp=None
       if opi=='ins' or opi=='cut' and layerComp.Shape.Solids:
            if not layerComp:
                   continue
@@ -757,12 +785,15 @@ def create_3DSubdomain(cellName,importFac):
            for (lorderj,lnamej) in layer_order_and_name:
               if lorderj==lorder:
                  break
-              [prefixj,z0j,z1j,opj,orderj2]=globalVar.stack[lnamej]
+              [prefixj,z0j,z1j,opj,orderj2]=stack[lnamej]
               z0j=float(z0j)
               z1j=float(z1j)
               if z0i>=z1j or z0j>=z1i:
                  continue
-              objs = FCdoc.getObjectsByLabel(prefixj+"_"+lnamej)
+              if prefixj:
+                 objs = FCdoc.getObjectsByLabel(prefixj+"_"+lnamej)
+              else:
+                 objs = FCdoc.getObjectsByLabel(lnamej)
               if not objs:
                   continue
               layerCompj=objs[0]
