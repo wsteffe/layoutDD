@@ -799,32 +799,12 @@ def create_3DSubdomain(cellName,importFac):
               layerCompj=objs[0]
               tolerance=0.0
               if not layerCompj.Shape.Solids:
-                  continue
-              cutterTool=Part.Compound(layerComp.Shape.Solids[0])
-              for isol in range(1,len(layerComp.Shape.Solids)):
-                 cutterTool.add(layerComp.Shape.Solids[isol])
-              rpl=FreeCAD.Placement()
-              cutterTool.Placement.Base=FreeCAD.Vector(0,0,(z0i-z0j*stack_scale))
-              shapes=[layerCompj.Shape,cutterTool]
-              pieces, map = shapes[0].generalFuse(shapes[1:], tolerance)          
-              gr =GeneralFuseResult(shapes, (pieces,map))
-              slidedCompj=gr.piecesFromSource(shapes[0])
-              slidedComp=gr.piecesFromSource(shapes[1])
-              insertedSolids=set()
-              for subcomp in slidedComp:
-                for solid in subcomp.Solids:
-                    insertedSolids.add(solid)
-              solids=[]
-              for subcomp in slidedCompj:
-                for solid in subcomp.Solids:
-                  if solid not in insertedSolids:
-                     solids.append(solid)
-              if not solids:
-                 break
-              comp=Part.Compound(solids[0])
-              for isol in range(1,len(solids)):
-                 comp.add(solids[isol])
-              layerCompj.Shape=comp
+                 continue
+              cutter=layerComp.Shape
+              if not cutter.Solids:
+                 continue
+              cutter.Placement.Base=FreeCAD.Vector(0,0,(z0i-z0j)*stack_scale)
+              layerCompj.Shape=layerCompj.Shape.cut(cutter)
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
