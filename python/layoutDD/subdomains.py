@@ -746,8 +746,8 @@ def create_3DSubdomain(cellName,importFac):
          label=prefix+"_"+lname
       else:
          label=lname
-      pl=FreeCAD.Placement()
-      pl.move(FreeCAD.Vector(0,0,z0i*stack_scale))
+      layerPlacement=FreeCAD.Placement()
+      layerPlacement.move(FreeCAD.Vector(0,0,z0i*stack_scale))
       if lname in FClayerShapeFromName.keys():
          FClayerShape=FClayerShapeFromName[lname]
          if FClayerShape.Edges:
@@ -766,7 +766,6 @@ def create_3DSubdomain(cellName,importFac):
          else:
            layerBody=FCdoc.addObject("PartDesign::Body",lname)
            layerBody.Label=lname
-         layerBody.Placement=pl
          layerBody.Visibility = True
          layerBody.ExportMode = 'Child Query'
          part.addObject(layerBody)
@@ -775,6 +774,8 @@ def create_3DSubdomain(cellName,importFac):
          edges=FCdoc.addObject('PartDesign::Feature', f'{lname}_edges')
          edges.Label = f'{lname}_edges'
          edges.Shape = Part.Compound([e.common(face) for e in FClayerShape.Edges])
+         edges.Placement=layerPlacement
+         edges.recompute()
          layerBody.addObject(edges)
          extr=addVSurf(FCdoc,edges,(z1i-z0i)*stack_scale)
          extr.Label = f'{lname}_surf'
@@ -793,7 +794,6 @@ def create_3DSubdomain(cellName,importFac):
          else:
            layerBody=FCdoc.addObject("App::Part",lname)
            layerBody.Label=lname
-         layerBody.Placement=pl
          layerBody.Visibility = True
          layerBody.ExportMode = 'Child Query'
          part.addObject(layerBody)
@@ -804,6 +804,8 @@ def create_3DSubdomain(cellName,importFac):
          wires=FCdoc.addObject('PartDesign::Feature', f'{lname}_wires')
          wires.Label = f'{lname}_wires'
          wires.Shape=Part.Compound(fwires)
+         wires.Placement=layerPlacement
+         wires.recompute()
          layerBody.addObject(wires)
          pad=addPad(FCdoc,wires,(z1i-z0i)*stack_scale)
          pad.Label = f'{lname}_solid'
@@ -822,7 +824,6 @@ def create_3DSubdomain(cellName,importFac):
          else:
            layerBody=FCdoc.addObject("App::Part",lname)
            layerBody.Label=lname
-         layerBody.Placement=pl
          layerBody.Visibility = True
          layerBody.ExportMode = 'Child Query'
          part.addObject(layerBody)
@@ -833,6 +834,8 @@ def create_3DSubdomain(cellName,importFac):
          wires=FCdoc.addObject('PartDesign::Feature', f'{lname}_wires')
          wires.Label = f'{lname}_wires'
          wires.Shape=Part.Compound(fwires)
+         wires.Placement=layerPlacement
+         wires.recompute()
          layerBody.addObject(wires)
          surf=addHSurf(FCdoc,wires)
          surf.Label = f'{lname}_surf'
@@ -879,15 +882,10 @@ def create_3DSubdomain(cellName,importFac):
                     cuttedRef.Support=cutted
                     cuttedRef.Label="Reference("+cutted.Label+")"
                     layerBodyj.addObject(cuttedRef)
-                    FCdoc.recompute()
                     toolRef=FCdoc.addObject('PartDesign::SubShapeBinder','ShepeBinder')
                     toolRef.Support=tool
                     toolRef.Label="Reference("+tool.Label+")"
-                    pl=FreeCAD.Placement()
-                    pl.move(FreeCAD.Vector(0,0,(z0i-z0j)*stack_scale))
-                    toolRef.Placement=pl
                     layerBodyj.addObject(toolRef)
-                    FCdoc.recompute()
                     booleanCut=FCdoc.addObject('PartDesign::Boolean','BooleanCut')
                     booleanCut.Type =1
                     booleanCut.Label=lnamej+"_cut"
@@ -899,6 +897,7 @@ def create_3DSubdomain(cellName,importFac):
                     pocket=addPocket(FCdoc,wires1,(z1i-z0i)*stack_scale)
                     pocket.Label="Pocket_"+lnamej+"_"+lname
                     layerBodyj.addObject(pocket)
+           FCdoc.recompute()
    for doc in FCdoc.getDependentDocuments():
         doc.save();
    return FCdoc
