@@ -25,8 +25,8 @@ class ZextentDialog(pya.QDialog):
       vb = pya.QVBoxLayout(self.formGroupBox)
 
       #Create Labels
-      self.z1 = QLabel('Zstart')
-      self.z2 = QLabel('Zend')       
+      self.z1 = QLabel('Zmin')
+      self.z2 = QLabel('Zmax')       
 
       # creating a line edit 
       self.nameLineEdit1 = QLineEdit(self.formGroupBox)
@@ -270,7 +270,7 @@ def copyInterceptedLayers(layoutView):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if lyp.source_name=="none":
+       if not lyp.name:
            continue
        if lyp.cellview()==cellViewId and lyp.visible:
           cellv_lif = cellLayout.get_info(lid)
@@ -278,9 +278,9 @@ def copyInterceptedLayers(layoutView):
           if (ln,dt)==(0,1):
              lyp.visible=False
        if lyp.cellview()==mainCellViewId:
-          if lyp.source_name not in globalVar.stack:
+          if lyp.name not in globalVar.stack:
             continue
-          [prefix,z0,z1,op,order]=globalVar.stack[lyp.source_name]
+          [prefix,z0,z1,op,order]=globalVar.stack[lyp.name]
           z0=float(z0)
           z1=float(z1)
           if z0>cell_z1 or z1<cell_z0:
@@ -291,7 +291,7 @@ def copyInterceptedLayers(layoutView):
              continue
           cellv_lid = cellLayout.layer(ln, dt)
           cellv_lif = cellLayout.get_info(cellv_lid)
-          cellv_lif.name= lyp.source_name
+          cellv_lif.name= lyp.name
           cellLayout.set_info(cellv_lid,cellv_lif)
     layoutView.add_missing_layers()
     saveActiveCell.saveActiveCell()
@@ -345,12 +345,14 @@ def evalLayerRegion(lname):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if lyp.source_name!=lname:
+       if lyp.name!=lname:
            continue
        layerReg =pya.Region([itr.shape().polygon.transformed(itr.trans()) for itr in mainLayout.begin_shapes(mainCell, lid)])
    return layerReg
 
 def pointIsInLayerRegion(x,y,layerReg):
+   if not layerReg:
+      return False
    box = pya.Box(x-1, y-1, x+1, y+1)
    region_b = pya.Region(box)
    result = layerReg.interacting(region_b)
@@ -359,7 +361,7 @@ def pointIsInLayerRegion(x,y,layerReg):
    else:
       return False
 
-def getPointInFace(face,importFac):
+def getPointInFace(face,dxf_unit):
     import FreeCAD
     import Part
     surf =face.Surface
@@ -388,12 +390,12 @@ def getPointInFace(face,importFac):
            t = edge.Curve.tangent((edge.ParameterRange[0]+edge.ParameterRange[1])/2)[0]
            p = edge.Curve.value((edge.ParameterRange[0]+edge.ParameterRange[1])/2)
            bn=n.cross(t)
-           return p+sgn*bn*2/importFac
+           return p+sgn*bn*2/dxf_unit
     if eddgeMinR:
         t = eddgeMinR.Curve.tangent((eddgeMinR.ParameterRange[0]+eddgeMinR.ParameterRange[1])/2)[0]
         p = eddgeMinR.Curve.value((eddgeMinR.ParameterRange[0]+eddgeMinR.ParameterRange[1])/2)
         bn=n.cross(t)
-        return p+sgn*bn*2/importFac
+        return p+sgn*bn*2/dxf_unit
     return None
 
 def mergeLayerFaces(layerFaces):
@@ -416,7 +418,7 @@ def mergeLayerFaces(layerFaces):
     return layerFaces
 
 
-def makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=False):
+def makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly=False):
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
@@ -435,10 +437,10 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
        P1=cedge.Vertexes[0].Point
        P2=cedge.Vertexes[1].Point
        Pc=(P1+P2)/2
-       xc=Pc[0]*importFac
-       yc=Pc[1]*importFac
+       xc=Pc[0]*dxf_unit
+       yc=Pc[1]*dxf_unit
        layerFaces=[]
-       if layerReg != None:
+       if layerReg:
           if pointIsInLayerRegion(xc,yc,layerReg):
              layerFaces.append(face)
     else:
@@ -456,7 +458,7 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
        tbdFaceSet=set()
        for face in slicedFace:
          tbdFaceSet.add(face)
-         p=getPointInFace(face,importFac)
+         p=getPointInFace(face,dxf_unit)
        slicedContour=[]
        for i in range(NcontEdges):
          slicedEdge=gr.piecesFromSource(shapes[i+1])
@@ -471,8 +473,8 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
           P1=cedge.Vertexes[0].Point
           P2=cedge.Vertexes[1].Point
           Pc=(P1+P2)/2
-          xc=Pc[0]*importFac
-          yc=Pc[1]*importFac
+          xc=Pc[0]*dxf_unit/db_unit
+          yc=Pc[1]*dxf_unit/db_unit
           for face in slicedFace:
             found=False
             if face in tbdFaceSet and not found:
@@ -535,7 +537,7 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
     return layerFaces
 
 
-def makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=False):
+def makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly=False):
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
@@ -555,8 +557,8 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
        P1=cedge.Vertexes[0].Point
        P2=cedge.Vertexes[1].Point
        Pc=(P1+P2)/2
-       xc=Pc[0]*importFac
-       yc=Pc[1]*importFac
+       xc=Pc[0]*dxf_unit/db_unit
+       yc=Pc[1]*dxf_unit/db_unit
        layerFaces=[]
        if layerReg != None:
           if pointIsInLayerRegion(xc,yc,layerReg):
@@ -585,9 +587,9 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
           slicedFace=[]
        layerFaces=[]
        for face in slicedFace:
-         Pc=getPointInFace(face,importFac)
-         xc=Pc[0]*importFac
-         yc=Pc[1]*importFac
+         Pc=getPointInFace(face,dxf_unit)
+         xc=Pc[0]*dxf_unit/db_unit
+         yc=Pc[1]*dxf_unit/db_unit
          if pointIsInLayerRegion(xc,yc,layerReg):
             layerFaces.append(face)
     layerFaces=mergeLayerFaces(layerFaces)
@@ -595,7 +597,7 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly=Fals
 
 useBooleanFeature=True
 
-def create_3DSubdomain(cellName,importFac):
+def create_3DSubdomain(cellName,dxf_unit,db_unit):
    subdomain_path="Subdomains/"+cellName
    import ezdxf
    import os,platform
@@ -783,9 +785,9 @@ def create_3DSubdomain(cellName,importFac):
       elif opi=='add' or opi=='ins':
          useAllClipPoly=not hasFClayerEdges and prefix=="DIEL"
          if globalVar.mergedLayersInDXF:
-           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
+           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
          else:
-           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
+           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
          if not layerFaces:
            continue
          if prefix:
@@ -813,9 +815,9 @@ def create_3DSubdomain(cellName,importFac):
       else:
          useAllClipPoly=not hasFClayerEdges
          if globalVar.mergedLayersInDXF:
-           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
+           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
          else:
-           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,importFac,useAllClipPoly)
+           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
          if not layerFaces:
            continue
          if prefix:
@@ -903,7 +905,7 @@ def create_3DSubdomain(cellName,importFac):
    return FCdoc
 
 
-def finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path):
+def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
    import ezdxf
    import os
    import globalVar
@@ -937,7 +939,7 @@ def finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path):
      if tmp:
         poly=tmp[0]
         for pt in poly.each_point_hull():
-           x, y = pt.x/importFac, pt.y/importFac
+           x, y = pt.x/dxf_unit, pt.y/dxf_unit
            points.append((x,y))
         closed=True
      else:
@@ -945,7 +947,7 @@ def finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path):
         if tmp:
            path=tmp[0]
            for pt in path.each_point():
-              x, y = pt.x/importFac, pt.y/importFac
+              x, y = pt.x/dxf_unit, pt.y/dxf_unit
               points.append((x,y))
            closed=False
      if points:
@@ -960,7 +962,7 @@ def finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path):
 
 
 
-def extractSubdomainDXF(layoutView,importFac):
+def extractSubdomainDXF(layoutView,dxf_unit):
     from ezdxf.addons import iterdxf
     from ezdxf import bbox
     mainCellView  = layoutView.cellview(0)
@@ -998,31 +1000,47 @@ def extractSubdomainDXF(layoutView,importFac):
               bb = bbox.extents([entity])
               ll=bb.extmin
               ur=bb.extmax
-              kbb= pya.Box(ll[0]*importFac,ll[1]*importFac,ur[0]*importFac,ur[1]*importFac)
+              kbb= pya.Box(ll[0]*dxf_unit,ll[1]*dxf_unit,ur[0]*dxf_unit,ur[1]*dxf_unit)
               touchPoly=[poly for poly in cellShape.each_touching(kbb)]
               if len(touchPoly)>0:
                  exporter.write(entity)
     finally:
       exporter.close()
       mainDoc.close()
-      finalizeRegionDXF(layoutView,importFac,interceptedLayers,subdomain_path)
+      finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path)
 
 
 def makeSubdomain():
-    import loaders
     layoutView        = pya.Application.instance().main_window().current_view()
     mainCellView      = layoutView.cellview(0)
     mainLayout        = mainCellView.layout()
     if mainLayout.technology() is not None:
        dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
-       importFac = dxf_unit/mainLayout.dbu
     else:
-       importFac=1
+       dxf_unit=1
     cellView= layoutView.active_cellview()
     cell = cellView.cell
 #    copyInterceptedLayers(layoutView)
-    extractSubdomainDXF(layoutView,importFac)
-    create_3DSubdomain(cell.name,importFac)
+    if not cellName.startswith("Region"):
+       pya.MessageBox.info("Information", "Please select Subdomain Region", pya.MessageBox.Ok)
+       return
+    extractSubdomainDXF(layoutView,dxf_unit)
+    create_3DSubdomain(cell.name,dxf_unit,mainLayout.dbu)
+
+def makeSubdomain2():
+    layoutView        = pya.Application.instance().main_window().current_view()
+    mainCellView      = layoutView.cellview(0)
+    mainLayout        = mainCellView.layout()
+    if mainLayout.technology() is not None:
+       dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
+    else:
+       dxf_unit=1
+    cellView= layoutView.active_cellview()
+    cell = cellView.cell
+    if not cellName.startswith("Region"):
+       pya.MessageBox.info("Information", "Please select Subdomain Region", pya.MessageBox.Ok)
+    create_3DSubdomain(cell.name,dxf_unit,mainLayout.dbu)
+
 
 
 def deleteCellLayers(layoutView):
@@ -1053,29 +1071,6 @@ def deleteCellLayers(layoutView):
 def deleteSubdomain():
     layoutView  = pya.Application.instance().main_window().current_view()
     deleteCellLayers(layoutView)
-
-
-def create_3DSubdomFromActiveCell():
-   import FreeCAD
-   import Import,Part
-   layoutView  = pya.Application.instance().main_window().current_view()
-   mainCellView   = layoutView.cellview(0)
-   mainCellViewId = mainCellView.index()
-   mainLayout     = mainCellView.layout()
-   cellView       = layoutView.active_cellview()
-   cellViewId     = cellView.index()
-   if cellViewId==mainCellViewId:
-        return
-   cell = cellView.cell
-   if mainLayout.technology() is not None:
-      dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
-      importFac = dxf_unit/mainLayout.dbu
-   else:
-      importFac=1
-   mainFilePath      = mainCellView.filename()
-   mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
-   mainFname         = mainFilePathSeg[-1].split(".")[0]
-   FCdoc=create_3DSubdomain(cell.name,importFac)
 
 
 

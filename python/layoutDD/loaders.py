@@ -69,9 +69,19 @@ def importLayout():
 #    for lyp in layoutView.each_layer():
 #        lyp.valid = False
     if fext.lower() == ".dxf":
-      layerMap=mapLayers.mapLayers(globalVar.stack)
-      saveActiveCell.saveActiveCell()
-      saveFlatDXF(fname)
+      mapLayers.assignNumbersToLayers()
+    if fext.lower() == ".gds":
+       dxf_path=fname+".dxf"
+       if not os.path.exists(dxf_path):
+          pya.MessageBox.info("Information", "Missing dxf file", pya.MessageBox.Ok)
+          return
+       map_path=fname+".map"
+       if not os.path.exists(map_path):
+          pya.MessageBox.info("Information", "Missing ADS layer map file", pya.MessageBox.Ok)
+          return
+       mapLayers.assignNamesToLayers(map_path)
+    saveActiveCell.saveActiveCell()
+    saveFlatDXF(fname)
     partitionPath="partition.gds"
     if not os.path.exists("Subdomains"):
       os.mkdir("Subdomains")
