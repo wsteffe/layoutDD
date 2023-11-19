@@ -128,7 +128,7 @@ def editRegion():
 #    print("Zstart : {0}".format(partition_stack[REGION_KEY][0])) 
 #    print("Zend : {0}".format(partition_stack[REGION_KEY][1]))         
 
-    loaders.saveStack('partition.stack',globalVar.partition_stack)
+    loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
 def newWGP():
@@ -148,7 +148,7 @@ def newWGP():
     WGP_KEY= "WGP_"+str(WGI)
     GUI_Klayout = ZextentDialog(REGION_KEY+"_"+WGP_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
-    loaders.saveStack('partition.stack',globalVar.partition_stack)
+    loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
     cellv_lid =cellLayout.layer(WGI, 0)
     cellv_lif =cellLayout.get_info(cellv_lid)
     if cellv_lif.name!=WGP_KEY:
@@ -185,7 +185,7 @@ def editWGP():
         return
     GUI_Klayout = ZextentDialog(k,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
-    loaders.saveStack('partition.stack',globalVar.partition_stack)
+    loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
 def deleteWGP():
@@ -214,7 +214,7 @@ def deleteWGP():
     del globalVar.partition_stack[k]
     cell.clear(lid)
     saveActiveCell.saveActiveCell()
-    loaders.saveStack('partition.stack',globalVar.partition_stack)
+    loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
 def deleteRegion():
@@ -233,7 +233,7 @@ def deleteRegion():
     if region_keys:
       for k in region_keys:
         del globalVar.partition_stack[k]
-      loaders.saveStack('partition.stack',globalVar.partition_stack)
+      loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
 def interceptedLayer(layerName,cellName):
@@ -597,8 +597,7 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
 
 useBooleanFeature=True
 
-def create_3DSubdomain(cellName,dxf_unit,db_unit):
-   subdomain_path="Subdomains/"+cellName
+def create_3DSubdomain(cellName,dxf_unit,db_unit):  
    import ezdxf
    import os,platform
    from operator import itemgetter
@@ -665,6 +664,8 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
        obj.addProperty('App::PropertyBool', 'Group_EnableExport', 'Group')
        obj.Group_EnableExport = True
        return obj
+
+   subdomain_path=globalVar.projectDir+"/Subdomains/"+cellName
 
    logger = FreeCAD.Logger('layout2fc')
    
@@ -961,10 +962,10 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
    doc.save()
 
 
-
-def extractSubdomainDXF(layoutView,dxf_unit):
+def extractSubdomainDXF(cellName,layoutView,dxf_unit):
     from ezdxf.addons import iterdxf
     from ezdxf import bbox
+    import globalVar
     mainCellView  = layoutView.cellview(0)
     mainCellViewId = mainCellView.index()
     mainLayout     = mainCellView.layout()
@@ -976,14 +977,11 @@ def extractSubdomainDXF(layoutView,dxf_unit):
         return
     if cell is None:
        return
-    mainFilePath      = mainCellView.filename()
-    mainFilePathSeg   = mainFilePath.replace("\\", "/").split("/")
-    mainFname         = mainFilePathSeg[-1].split(".")[0]
     cellFilePath      = cellView.active().filename()
     cellFilePathSeg   = cellFilePath.replace("\\", "/").split("/")
     cellFname         = cellFilePathSeg[-1].split(".")[0]
-    mainDoc = iterdxf.opendxf(mainFname+'_flat.dxf')
-    subdomain_path="Subdomains/"+cell.name
+    mainDoc = iterdxf.opendxf(globalVar.projectDir+"/"+globalVar.fileName+'_flat.dxf')
+    subdomain_path=globalVar.projectDir+"/Subdomains/"+cellName
     exporter = mainDoc.export(subdomain_path+'.dxf')
     msp=mainDoc.modelspace()
     extractedTypes=["LINE","POINT","VERTEX","POLYLINE","LWPOLYLINE","SPLINE","CIRCLE","ARC","ELLIPSE"]
@@ -1011,6 +1009,7 @@ def extractSubdomainDXF(layoutView,dxf_unit):
 
 
 def makeSubdomain():
+    import globalVar
     layoutView        = pya.Application.instance().main_window().current_view()
     mainCellView      = layoutView.cellview(0)
     mainLayout        = mainCellView.layout()
@@ -1021,13 +1020,14 @@ def makeSubdomain():
     cellView= layoutView.active_cellview()
     cell = cellView.cell
 #    copyInterceptedLayers(layoutView)
-    if not cellName.startswith("Region"):
+    if not cell.name.startswith("Region"):
        pya.MessageBox.info("Information", "Please select Subdomain Region", pya.MessageBox.Ok)
        return
-    extractSubdomainDXF(layoutView,dxf_unit)
+    extractSubdomainDXF(cell.name,layoutView,dxf_unit)
     create_3DSubdomain(cell.name,dxf_unit,mainLayout.dbu)
 
 def makeSubdomain2():
+    import globalVar
     layoutView        = pya.Application.instance().main_window().current_view()
     mainCellView      = layoutView.cellview(0)
     mainLayout        = mainCellView.layout()
@@ -1037,7 +1037,7 @@ def makeSubdomain2():
        dxf_unit=1
     cellView= layoutView.active_cellview()
     cell = cellView.cell
-    if not cellName.startswith("Region"):
+    if not cell.name.startswith("Region"):
        pya.MessageBox.info("Information", "Please select Subdomain Region", pya.MessageBox.Ok)
     create_3DSubdomain(cell.name,dxf_unit,mainLayout.dbu)
 

@@ -1,17 +1,16 @@
 import pya
 
-def saveFlatDXF(fname):
+def saveFlatDXF(fpath):
     import ezdxf
     from ezdxf import disassemble
     from ezdxf.addons import Importer
-    sdoc = ezdxf.readfile(fname+".dxf")
+    sdoc = ezdxf.readfile(fpath+".dxf")
     tdoc = ezdxf.new()
     importer = Importer(sdoc,tdoc)
     smsp= sdoc.modelspace()
     exploded=disassemble.recursive_decompose(smsp)
     importer.import_entities(exploded)
-    tdoc.saveas(fname+"_flat.dxf")
-
+    tdoc.saveas(fpath+"_flat.dxf")
 
 def saveStack(stack_path,stack):
     with open(stack_path, 'w') as f:
@@ -55,10 +54,12 @@ def importLayout():
     if mainLayout.technology() is None:
       pya.MessageBox.info("Information", "Imported Layout must be associated with a Technology", pya.MessageBox.Ok)
       return
-    filePath      = cellView.active().filename()
-    filePathSeg   = filePath.replace("\\", "/").split("/")
-    fname,fext    = os.path.splitext(filePathSeg[-1])
-    stack_path=fname+".stack"
+    filePath    = cellView.active().filename()
+    filePath    = filePath.replace("\\", "/")
+    globalVar.projectDir,globalVar.fileName = os.path.split(filePath)
+    globalVar.fileName,fext=os.path.splitext(globalVar.fileName)
+    filePath,fext  = os.path.splitext(filePath)
+    stack_path=filePath+".stack"
     if not os.path.exists(stack_path):
        pya.MessageBox.info("Information", "Imported Layout must be associated with stack file", pya.MessageBox.Ok)
        return
@@ -71,31 +72,32 @@ def importLayout():
     if fext.lower() == ".dxf":
       mapLayers.assignNumbersToLayers()
     if fext.lower() == ".gds":
-       dxf_path=fname+".dxf"
+       dxf_path=filePath+".dxf"
        if not os.path.exists(dxf_path):
           pya.MessageBox.info("Information", "Missing dxf file", pya.MessageBox.Ok)
           return
-       map_path=fname+".map"
+       map_path=filePath+".map"
        if not os.path.exists(map_path):
           pya.MessageBox.info("Information", "Missing ADS layer map file", pya.MessageBox.Ok)
           return
        mapLayers.assignNamesToLayers(map_path)
     saveActiveCell.saveActiveCell()
-    saveFlatDXF(fname)
-    partitionPath="partition.gds"
-    if not os.path.exists("Subdomains"):
-      os.mkdir("Subdomains")
-    if not os.path.exists(partitionPath): 
+    saveFlatDXF(filePath)
+    partitionPath=globalVar.projectDir+"/partition"
+    subdomainsPath=globalVar.projectDir+"/Subdomains"
+    if not os.path.exists(subdomainsPath):
+      os.mkdir(subdomainsPath)
+    if not os.path.exists(partitionPath+".gds"): 
       cellView   = mainWindow.create_layout(2)
       cellIndex  = cellView.index()
       cellLayout = cellView.layout()
       option     = pya.SaveLayoutOptions()
       layoutView = mainWindow.current_view()
-      layoutView.save_as(cellIndex,partitionPath, option)
+      layoutView.save_as(cellIndex,partitionPath+".gds", option)
       globalVar.partition_stack={}
-      saveStack('partition.stack',globalVar.partition_stack)
+      saveStack(partitionPath+".stack",globalVar.partition_stack)
     else:
-      layoutView.load_layout(partitionPath,2)
+      layoutView.load_layout(partitionPath+".gds",2)
 
 def openProject():
     import os
@@ -105,19 +107,19 @@ def openProject():
     layoutView   = mainWindow.view(mainWindow.create_view())
     cellViewId   = layoutView.load_layout(gdsPath)
     cellView     = layoutView.cellview(cellViewId)
-    lypPath      = gdsPath.split(".")[0]+".lyp"
+    filePath     = gdsPath.replace("\\", "/")
+    globalVar.projectDir,globalVar.fileName = os.path.split(filePath) 
+    globalVar.fileName,fext=os.path.splitext(globalVar.fileName)
+    filePath,fext  = os.path.splitext(filePath)
+    lypPath      = filePath+".lyp"
     layoutView.load_layer_props(lypPath)
-    partitionPath="partition.gds"
-    partitionLypPath="partition.lyp"
-    mainFilePath    = cellView.filename()
-    mainFilePathSeg = mainFilePath.replace("\\", "/").split("/")
-    mainFname       = mainFilePathSeg[-1].split(".")[0]
-    globalVar.stack=readStack(mainFname+".stack")
-    globalVar.partition_stack=readStack('partition.stack')
-    if os.path.exists(partitionPath):
-        layoutView.load_layout(partitionPath,2)
-        if os.path.exists(partitionLypPath):
-           layoutView.load_layer_props(partitionLypPath,cellViewId)
+    globalVar.stack=readStack(filePath+".stack")
+    partitionPath=globalVar.projectDir+"/partition"
+    globalVar.partition_stack=readStack(partitionPath+'.stack')
+    if os.path.exists(partitionPath+".gds"):
+        layoutView.load_layout(partitionPath+".gds",2)
+        if os.path.exists(partitionPath+".lyp"):
+           layoutView.load_layer_props(partitionPath+".lyp",cellViewId)
 
 
 

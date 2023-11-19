@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description>installs python modules required by layoutDD</description>
+ <prolog/>
+ <epilog/>
+ <autorun>true</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>false</show-in-menu>
+ <group-name/>
+ <menu-path/>
+ <interpreter>python</interpreter>
+ <dsl-interpreter-name/>
+ <text># 
+
+
+from layoutDD import setup
+
+setup.installRequirements()
+
+
+ </text>
+</klayout-macro>

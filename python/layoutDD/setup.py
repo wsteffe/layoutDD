@@ -3,6 +3,27 @@ import pya
 ACTIONS = []
 layerMap=None
 
+def installRequirements():
+   import pkg_resources
+   import pip
+   import sys
+   import os
+   reqPath  = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "requirements.txt"))
+   required = set()
+   with open(reqPath) as reqfile:
+      for line in reqfile:
+         line=line.split("#")[0]
+         line=line.rstrip()
+         if len(line)>0:
+             required.add(line)
+   installed = {pkg.key for pkg in pkg_resources.working_set}
+   missing = required - installed
+   for package in missing:
+      pya.MessageBox.info("Information", "Install "+package+" ?", pya.MessageBox.Ok)
+      pip.main(['install', package])
+
+
+
 def registerToolbarItems():
 
   global ACTIONS
@@ -76,6 +97,13 @@ def registerToolbarItems():
   act.on_triggered(subdomains.makeSubdomain)
   menu.insert_item(s1+".deleteWGP+", "makeSubdomain", act)
   ACTIONS.append(act)
+
+  act = pya.Action()
+  act.title = "Install Python Dependencies"
+  act.on_triggered(installRequirements)
+  menu.insert_item(s1+".makeSubdomain+", "installRequirements", act)
+  ACTIONS.append(act)
+
 
 
 

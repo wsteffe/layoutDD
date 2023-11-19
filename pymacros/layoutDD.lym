@@ -16,6 +16,22 @@
 
 import sys
 import os
+import platform
+import re
+
+libPath  = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "python/layoutDD"))
+if not libPath in sys.path:
+   sys.path.append(libPath)
+
+if platform.system()=="Windows":
+   user=os.getlogin()
+   pattern = "FreeCAD-Link-Tip-Win-x86_64-py3.8-[0-9]+/Mod$"
+   for dirpath, dirnames, filenames in os.walk("C:/Users/"+user+"/AppData/Roaming/"):
+      normpath=dirpath.replace('\\', '/')
+      if re.search(pattern, normpath):
+          sys.path.append(normpath)
+#          pya.MessageBox.info("Information", normpath+" has been appended to python path", pya.MessageBox.Ok)
+          break
 
 
 #pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
