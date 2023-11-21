@@ -1,0 +1,8 @@
+scale:  1.00
+air_top:      DIEL  0.32004  3.000 add    0
+top:      BC    0.32004  0.354083543 ins    1
+FR4:	 DIEL  0.000  0.32004  add    0
+bottom:      BC   -0.034043543  0.000  ins    1
+air_bottom:	 DIEL -2.000  0.000  add    0
+drill:      BC    0.000  2.4462 ins    2
+
