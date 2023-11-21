@@ -361,7 +361,7 @@ def pointIsInLayerRegion(x,y,layerReg):
    else:
       return False
 
-def getPointInFace(face,dxf_unit):
+def getPointInFace(face,shift):
     import FreeCAD
     import Part
     surf =face.Surface
@@ -390,12 +390,12 @@ def getPointInFace(face,dxf_unit):
            t = edge.Curve.tangent((edge.ParameterRange[0]+edge.ParameterRange[1])/2)[0]
            p = edge.Curve.value((edge.ParameterRange[0]+edge.ParameterRange[1])/2)
            bn=n.cross(t)
-           return p+sgn*bn*2/dxf_unit
+           return p+sgn*bn*shift
     if eddgeMinR:
         t = eddgeMinR.Curve.tangent((eddgeMinR.ParameterRange[0]+eddgeMinR.ParameterRange[1])/2)[0]
         p = eddgeMinR.Curve.value((eddgeMinR.ParameterRange[0]+eddgeMinR.ParameterRange[1])/2)
         bn=n.cross(t)
-        return p+sgn*bn*2/dxf_unit
+        return p+sgn*bn*shift
     return None
 
 def mergeLayerFaces(layerFaces):
@@ -418,7 +418,7 @@ def mergeLayerFaces(layerFaces):
     return layerFaces
 
 
-def makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly=False):
+def makeLayerFaces1(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly=False):
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
@@ -437,8 +437,8 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
        P1=cedge.Vertexes[0].Point
        P2=cedge.Vertexes[1].Point
        Pc=(P1+P2)/2
-       xc=Pc[0]*dxf_unit
-       yc=Pc[1]*dxf_unit
+       xc=Pc[0]*FC_unit/db_unit
+       yc=Pc[1]*FC_unit/db_unit
        layerFaces=[]
        if layerReg:
           if pointIsInLayerRegion(xc,yc,layerReg):
@@ -458,7 +458,6 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
        tbdFaceSet=set()
        for face in slicedFace:
          tbdFaceSet.add(face)
-         p=getPointInFace(face,dxf_unit)
        slicedContour=[]
        for i in range(NcontEdges):
          slicedEdge=gr.piecesFromSource(shapes[i+1])
@@ -473,8 +472,8 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
           P1=cedge.Vertexes[0].Point
           P2=cedge.Vertexes[1].Point
           Pc=(P1+P2)/2
-          xc=Pc[0]*dxf_unit/db_unit
-          yc=Pc[1]*dxf_unit/db_unit
+          xc=Pc[0]*FC_unit/db_unit
+          yc=Pc[1]*FC_unit/db_unit
           for face in slicedFace:
             found=False
             if face in tbdFaceSet and not found:
@@ -537,7 +536,7 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
     return layerFaces
 
 
-def makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly=False):
+def makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly=False):
     import FreeCAD
     import Part
     from BOPTools.GeneralFuseResult import GeneralFuseResult
@@ -557,8 +556,8 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
        P1=cedge.Vertexes[0].Point
        P2=cedge.Vertexes[1].Point
        Pc=(P1+P2)/2
-       xc=Pc[0]*dxf_unit/db_unit
-       yc=Pc[1]*dxf_unit/db_unit
+       xc=Pc[0]*FC_unit/db_unit
+       yc=Pc[1]*FC_unit/db_unit
        layerFaces=[]
        if layerReg != None:
           if pointIsInLayerRegion(xc,yc,layerReg):
@@ -586,10 +585,11 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPo
        else:
           slicedFace=[]
        layerFaces=[]
+       shift=10/FC_unit #10 um
        for face in slicedFace:
-         Pc=getPointInFace(face,dxf_unit)
-         xc=Pc[0]*dxf_unit/db_unit
-         yc=Pc[1]*dxf_unit/db_unit
+         Pc=getPointInFace(face,shift)
+         xc=Pc[0]*FC_unit/db_unit
+         yc=Pc[1]*FC_unit/db_unit
          if pointIsInLayerRegion(xc,yc,layerReg):
             layerFaces.append(face)
     layerFaces=mergeLayerFaces(layerFaces)
@@ -705,7 +705,9 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
    params.SetBool('connectEdges', True)
-   params.SetFloat('dxfScaling', 0.001)
+   FC_unit=1.e6   #expressed in um
+   dxfScaling=float(dxf_unit/FC_unit)
+   params.SetFloat('dxfScaling', dxfScaling)
    Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
    FClayers = FCdoc.Objects
    partName = os.path.basename(subdomain_path)
@@ -786,9 +788,9 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
       elif opi=='add' or opi=='ins':
          useAllClipPoly=not hasFClayerEdges and prefix=="DIEL"
          if globalVar.mergedLayersInDXF:
-           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
+           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly)
          else:
-           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
+           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly)
          if not layerFaces:
            continue
          if prefix:
@@ -816,9 +818,9 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
       else:
          useAllClipPoly=not hasFClayerEdges
          if globalVar.mergedLayersInDXF:
-           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
+           layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly)
          else:
-           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,dxf_unit,db_unit,useAllClipPoly)
+           layerFaces=makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly)
          if not layerFaces:
            continue
          if prefix:
@@ -915,6 +917,7 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
    cellLayout     = cellView.layout()
    cell = cellView.cell
 
+   dbu=cellLayout.dbu
    REGION_KEY=cell.name
    wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
    WGNum=0
@@ -940,7 +943,7 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
      if tmp:
         poly=tmp[0]
         for pt in poly.each_point_hull():
-           x, y = pt.x/dxf_unit, pt.y/dxf_unit
+           x, y = pt.x*dbu/dxf_unit, pt.y*dbu/dxf_unit
            points.append((x,y))
         closed=True
      else:
@@ -948,7 +951,7 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
         if tmp:
            path=tmp[0]
            for pt in path.each_point():
-              x, y = pt.x/dxf_unit, pt.y/dxf_unit
+              x, y = pt.x*dbu/dxf_unit, pt.y*dbu/dxf_unit
               points.append((x,y))
            closed=False
      if points:
@@ -998,7 +1001,7 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
               bb = bbox.extents([entity])
               ll=bb.extmin
               ur=bb.extmax
-              kbb= pya.Box(ll[0]*dxf_unit,ll[1]*dxf_unit,ur[0]*dxf_unit,ur[1]*dxf_unit)
+              kbb= pya.DBox(ll[0]*dxf_unit,ll[1]*dxf_unit,ur[0]*dxf_unit,ur[1]*dxf_unit)
               touchPoly=[poly for poly in cellShape.each_touching(kbb)]
               if len(touchPoly)>0:
                  exporter.write(entity)
@@ -1013,11 +1016,13 @@ def makeSubdomain():
     layoutView        = pya.Application.instance().main_window().current_view()
     mainCellView      = layoutView.cellview(0)
     mainLayout        = mainCellView.layout()
-    if mainLayout.technology() is not None:
-       dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
+    cellView= layoutView.active_cellview()
+    cellLayout= cellView.layout()
+    technology=cellLayout.technology()
+    if cellLayout.technology() is not None:
+       dxf_unit  = cellLayout.technology().load_layout_options.dxf_unit
     else:
        dxf_unit=1
-    cellView= layoutView.active_cellview()
     cell = cellView.cell
 #    copyInterceptedLayers(layoutView)
     if not cell.name.startswith("Region"):
