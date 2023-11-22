@@ -12,7 +12,7 @@ the dxf file. Buy the two description are nor equivalent:
 
 * The dxf format allows a precise definition of curved shapes such as circles, ellipses, spline curves but there is a drawback. Sometimes, when the layout is very complicate, klayout may fail to reconstruct the regions covered by a layer from the dxf representation.
 
-* The gds format offers a more reliable identification of inner regions but all curved shapes are discretized into polygonal shapes. Another drawback of the gds format is that it doesn't retain the layer names which are instead identified an integer index (and an integer data type). The third file (the layer map file) exported by Keysight ADS is meant to establish a biunivocal map between these integer indices and the layer names.
+* The gds format offers a more reliable identification of inner regions but all curved shapes are discretized into polygonal shapes. Another drawback of the gds format is that it doesn't retain the layer names which are instead identified with integer indices (and an integer data type). The third file (the layer map file) exported by Keysight ADS is meant to establish a biunivocal map between these integer indices and the layer names.
 
 The polygonal representation allows a fast implementation of several operations acting on planar shapes like union, intersection and others. The polygonal approximation is surely justified in the design of integrated circuits, which is the main applocation area of the klayoout code.
 
@@ -57,3 +57,4 @@ A minimal operation sequence is:
     The geometrical elements are all hidden once the document is opened in the FC code. The visibility and a better color setting can be established by invoking the macro 
     setPCBvisibility.py (stored in the project subfolder python/FCmacro) from the Macro menu of FC software.
 
+![Alt text](https://github.com/wsteffe/layoutDD/blob/master/Test/FC_view.png "3D model extracted from Region_1")
