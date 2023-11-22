@@ -3,7 +3,7 @@
  <name>layoutDD</name>
  <token/>
  <hidden>false</hidden>
- <version>0.3.1</version>
+ <version>0.3.2</version>
  <api-version/>
  <title>layoutDD</title>
  <doc>Provides commands for Decomposition of Layout in a set of Subdomains.</doc>
