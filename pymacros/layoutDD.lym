@@ -30,6 +30,7 @@ if platform.system()=="Windows":
       normpath=dirpath.replace('\\', '/')
       if re.search(pattern, normpath):
           sys.path.append(normpath)
+          sys.path.append(normpath+"../bin")
 #          pya.MessageBox.info("Information", normpath+" has been appended to python path", pya.MessageBox.Ok)
           break
 
