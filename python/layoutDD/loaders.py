@@ -54,14 +54,12 @@ def importLayout():
     if mainLayout.technology() is None:
       pya.MessageBox.info("Information", "Imported Layout must be associated with a Technology", pya.MessageBox.Ok)
       return
-    dxf_unit  = mainLayout.technology().load_layout_options.dxf_unit
-    mainLayout.add_meta_info(pya.LayoutMetaInfo("dxf_unit", dxf_unit))
-    dxf_unit2   = mainLayout.meta_info_value("dxf_unit")
     filePath    = mainCellView.active().filename()
     filePath    = filePath.replace("\\", "/")
     globalVar.projectDir,globalVar.fileName = os.path.split(filePath)
     globalVar.fileName,fext=os.path.splitext(globalVar.fileName)
     filePath,fext  = os.path.splitext(filePath)
+    mainLayout.technology().save(filePath+".lyt")
     stack_path=filePath+".stack"
     if not os.path.exists(stack_path):
        pya.MessageBox.info("Information", "Imported Layout must be associated with stack file", pya.MessageBox.Ok)
@@ -108,21 +106,22 @@ def openProject():
     import globalVar
     gdsPath      = pya.FileDialog.ask_open_file_name("Choose your file.", '.', "GDS2 (*.gds)")
     gdsPath      = gdsPath.replace("\\", "/")
-    mainWindow   = pya.Application.instance().main_window()
-    mainCellView  = mainWindow.load_layout(gdsPath,1)
+    filePath,fext  =os.path.splitext(gdsPath)
+    globalVar.projectDir,globalVar.fileName = os.path.split(filePath) 
+    globalVar.stack=readStack(filePath+".stack")
+    mainWindow     = pya.Application.instance().main_window()
+    technology     =pya.Technology()
+    technology.load(filePath+".lyt")
+    mainCellView  = mainWindow.load_layout(gdsPath,technology.name,1)
     mainLayout    = mainCellView.layout()
-    filePath,fext  = os.path.splitext(gdsPath)
+    dxf_unit      = mainLayout.technology().load_layout_options.dxf_unit
     lypPath= filePath+".lyp"
     layoutView  = pya.LayoutView.current()
     layoutView.load_layer_props(lypPath)
-    dxf_unit    = mainLayout.meta_info_value("dxf_unit")
-    globalVar.projectDir,globalVar.fileName = os.path.split(filePath) 
-    globalVar.fileName,fext=os.path.splitext(globalVar.fileName)
-    globalVar.stack=readStack(filePath+".stack")
     partitionPath=globalVar.projectDir+"/partition"
     globalVar.partition_stack=readStack(partitionPath+'.stack')
     if os.path.exists(partitionPath+".gds"):
-        cellViewId=layoutView.load_layout(partitionPath+".gds",2)
+        cellViewId=layoutView.load_layout(partitionPath+".gds",technology.name,2)
         cellView = layoutView.cellview(cellViewId)
         cellLayout= cellView.layout()
         if os.path.exists(partitionPath+".lyp"):

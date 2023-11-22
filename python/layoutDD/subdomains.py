@@ -585,7 +585,7 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPol
        else:
           slicedFace=[]
        layerFaces=[]
-       shift=10/FC_unit #10 um
+       shift=2/FC_unit #2 um
        for face in slicedFace:
          Pc=getPointInFace(face,shift)
          xc=Pc[0]*FC_unit/db_unit
@@ -705,8 +705,8 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
    params.SetBool('connectEdges', True)
-   FC_unit=1.e6   #expressed in um
-   dxfScaling=float(dxf_unit/FC_unit)
+   FC_unit=1.e3   #expressed in um
+   dxfScaling=float(dxf_unit*1.e-6) #dxfScaling = dxf_unit converted in meters
    params.SetFloat('dxfScaling', dxfScaling)
    Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
    FClayers = FCdoc.Objects
@@ -991,6 +991,7 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
     cellLy00Id=cell.layout().layer(0,0)
     cellShape=cell.shapes(cellLy00Id)
     interceptedLayers=set()
+    dbu=cellLayout.dbu
     try:
       for entity in msp:
          if not entity.dxf.hasattr("layer"):
@@ -1001,7 +1002,7 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
               bb = bbox.extents([entity])
               ll=bb.extmin
               ur=bb.extmax
-              kbb= pya.DBox(ll[0]*dxf_unit,ll[1]*dxf_unit,ur[0]*dxf_unit,ur[1]*dxf_unit)
+              kbb= pya.Box(ll[0]*dxf_unit/dbu,ll[1]*dxf_unit/dbu,ur[0]*dxf_unit/dbu,ur[1]*dxf_unit/dbu)
               touchPoly=[poly for poly in cellShape.each_touching(kbb)]
               if len(touchPoly)>0:
                  exporter.write(entity)
