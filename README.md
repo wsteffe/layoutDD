@@ -46,14 +46,14 @@ dielectric and each metal layers included in the PCB structure. The format is th
 
 A minimal operation sequence is:
 
-1 Create a technology and set the related dxf_unit as required for a proper reading of the dxf file. Set this technology in the GUI selector.
-2 Open the gds file usuìng normal open command in File menu.
-3 Use command Import Layout from layoutDD menu
-4 Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
-5 Select layer 0 of new created cell named Region_1.and draw a closed polygon on this layer.
-6 Use command Make Subdomain from layoutDD menu.
-  A new file named "Region_1.FCStd" is generated in the project Subfolder named "Subdomains".
-  This document contains a 3D model of the extracted geometry which can be openeed with the FreeCAD Softewaare available at https://github.com/realthunder/FreeCAD/releases.
-  The geometrical elements are all hidden once the document is opened in the FC code. The visibility and a better color setting can be established by invoking the macro 
-  setPCBvisibility.py (stored in the project subfolder python/FCmacro) from the Macro menu of FC software.
-  
+  * Create a technology and set the related dxf_unit as required for a proper reading of the dxf file. Set this technology in the GUI selector
+  * Open the gds file usuìng normal open command in File menu.
+  * Use command Import Layout from layoutDD menu
+  * Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
+  * Select layer 0 of new created cell named Region_1.and draw a closed polygon on this layer. 
+  * Use command Make Subdomain from layoutDD menu.
+    A new file named "Region_1.FCStd" is generated in the project Subfolder named "Subdomains".
+    This document contains a 3D model of the extracted geometry which can be openeed with the FreeCAD Softewaare available at https://github.com/realthunder/FreeCAD/releases.
+    The geometrical elements are all hidden once the document is opened in the FC code. The visibility and a better color setting can be established by invoking the macro 
+    setPCBvisibility.py (stored in the project subfolder python/FCmacro) from the Macro menu of FC software.
+
