@@ -22,7 +22,6 @@ A fourth file (the stack file) is required by layoutDD for the definition of the
 Currently the stack file must be edited by the user which has to specify the z extent (minumum and maximum z coordinate) associated with each
 dielectric and each metal layers included in the PCB structure. The format is the following:
 
->   ...
 
 >   layerName1: type1 Zmin1 Zmax1 operation1 oporder1
 
