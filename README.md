@@ -62,7 +62,8 @@ A minimal operation sequence is:
   
   A new file named "Region_1.FCStd" is generated in the project Subfolder named "Subdomains".
   This document contains a 3D model of the extracted geometry which can be openeed with the FreeCAD Softewaare available at https://github.com/realthunder/FreeCAD/releases.
-  The geometrical elements are all hidden once the document is opened in the FC code. The visibility and a better color setting can be established by invoking the macro 
-  setPCBvisibility.py (stored in the project subfolder python/FCmacro) from the Macro menu of FC software.
+  The geometrical elements are all hidden once the document is opened in the FC code. 
+  The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
+  invoked from the Macro menu of FC software.
 
 ![Alt text](https://github.com/wsteffe/layoutDD/blob/master/Test/FC_view.png "3D model extracted from Region_1")
