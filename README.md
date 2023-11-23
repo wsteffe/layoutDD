@@ -65,7 +65,8 @@ A minimal operation sequence is:
   This document contains a 3D model of the extracted geometry which can be opened with the FreeCAD Software available at https://github.com/realthunder/FreeCAD/releases.
   The geometrical elements are all hidden once the document is opened in the FC code. 
   The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
-  invoked from the Macro menu of FC software.
+  invoked from the Macro menu of FC software. In order to be recognized by FreeCAD this python script must be put inside the folder 
+  "/home/username/.local/share/FreeCAD/Macro" on Linux systems and inside the folder "C:\Users\username\AppData\Roaming\FreeCAD\Macro" on Windows systems
 
 ![Alt text](https://github.com/wsteffe/layoutDD/blob/master/Test/klayout_view.png "Imported circuit")
 
