@@ -62,9 +62,11 @@ dielectric and each metal layers included in the PCB structure. The format is th
 
 A minimal operation sequence is:
 
-  * Create a technology and set the related dxf_unit as required for a proper reading of the dxf file. Set this technology in the GUI selector
+  * Create a technology using the klayout command "Tool/Manage Technology" and set the associated dxf unit for a proper reading of the dxf file. 
+    This unit can be spwcified in the "Reader Options/DXF" tab of the created technology. Set the technology in the GUI selector.
+    If the dxf unit is correct there should be a perfect fitting (same size) between the geometries described in gds and dxf files once opened in the klayout viewer. 
   * Open the gds file with the normal open command in Klayout File menu.
-  * Use command Import Layout from layoutDD menu
+  * Use command Import Layout from layoutDD menu.
   * Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
   * Select the new region named Region_1 and the layer 0/0@2 where @2 is the tag associated with the view of partiton.gds. 
   * Draw a closed polygon on the selected layer.
