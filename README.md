@@ -74,11 +74,12 @@ A minimal operation sequence is:
   * The project may be closed with the normal command "File/Close All" but it should be reopened, when needed, using the command "Open DD Prject" included 
     in the layoutDD menu and then selecting, in command window, the gds file associated with the imported circuit.
   
-  The layoutDD command "Make Subdomain" generates a new file named "Region_1.FCStd" inside the project Subfolder named "Subdomains".
+  The layoutDD command "Make Subdomain" generates a new file named "Region_1.FCStd" inside the project subfolder named "Subdomains".
   This document contains a 3D model of the extracted geometry which can be opened with the FreeCAD software available at https://github.com/realthunder/FreeCAD/releases.
-  The geometrical elements are all hidden once the document is opened in the FreeCAD. 
-  The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
-  invoked from the Macro menu of FC software. In order to be recognized by FreeCAD this python script must be put inside the folder 
+  
+  The geometrical elements are all hidden once the document is opened in the FreeCAD. The visibility and a better color setting can be established with the macro
+  setPCBvisibility.py (available from the subfolder python/FCmacro) invoked from the Macro menu of FC software. 
+  To be recognized by FreeCAD this python script must be put inside the folder 
   "/home/username/.local/share/FreeCAD/Macro" on Linux systems and inside the folder "C:\Users\username\AppData\Roaming\FreeCAD\Macro" on Windows systems.
 
 ![Alt text](https://github.com/wsteffe/layoutDD/blob/master/Test/klayout_view.png "Imported circuit")
