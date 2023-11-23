@@ -63,7 +63,7 @@ dielectric and each metal layers included in the PCB structure. The format is th
 A minimal operation sequence is:
 
   * Create a technology using the klayout command "Tool/Manage Technology" and set the associated dxf unit for a proper reading of the dxf file. 
-    This unit can be spwcified in the "Reader Options/DXF" tab of the created technology. Set the technology in the GUI selector.
+    This unit can be specified in the tab "Reader Options/DXF" of the created technology. Set the technology in the GUI selector.
     If the dxf unit is correct there should be a perfect fitting (same size) between the geometries described in gds and dxf files once opened in the klayout viewer. 
   * Open the gds file with the normal open command in Klayout File menu.
   * Use command Import Layout from layoutDD menu.
