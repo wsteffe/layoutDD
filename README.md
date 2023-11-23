@@ -72,7 +72,7 @@ A minimal operation sequence is:
   * Draw a closed polygon on the selected layer.
   * Use the command "Make Subdomain" from the layoutDD menu.
   * The project may be closed with the normal command "File/Close All" but it should be reopened, when needed, using the command "Open DD Prject" included 
-    in the layoutDD menu and then selecting, in command window, the gds file associated with the imported circuit.
+    in the layoutDD menu and then selecting, in the command window, the gds file associated with the imported circuit.
   
   The layoutDD command "Make Subdomain" generates a new file named "Region_1.FCStd" inside the project subfolder named "Subdomains".
   This document contains a 3D model of the extracted geometry which can be opened with the FreeCAD software available at https://github.com/realthunder/FreeCAD/releases.
