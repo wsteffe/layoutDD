@@ -65,4 +65,8 @@ A minimal operation sequence is:
   The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
   invoked from the Macro menu of FC software.
 
+![Alt text](https://github.com/wsteffe/layoutDD/blob/master/Test/klayout_view.png "Imported circuit")
+
+
 ![Alt text](https://github.com/wsteffe/layoutDD/blob/master/Test/FC_view.png "3D model extracted from Region_1")
+
