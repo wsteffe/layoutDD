@@ -55,11 +55,12 @@ A minimal operation sequence is:
   * Open the gds file with the normal open command in Klayout File menu.
   * Use command Import Layout from layoutDD menu
   * Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
-  * Select layer 0 of new created cell named Region_1.and draw a closed polygon on this layer. 
+  * Select the new region named Region_1 and the layer 0/0@2 where @2 is the tag associated with the view of partiton.gds. 
+  * Draw a closed polygon on the selected layer.
   * Use command Make Subdomain from layoutDD menu.
   
   A new file named "Region_1.FCStd" is generated in the project Subfolder named "Subdomains".
-  This document contains a 3D model of the extracted geometry which can be openeed with the FreeCAD Softewaare available at https://github.com/realthunder/FreeCAD/releases.
+  This document contains a 3D model of the extracted geometry which can be opened with the FreeCAD Software available at https://github.com/realthunder/FreeCAD/releases.
   The geometrical elements are all hidden once the document is opened in the FC code. 
   The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
   invoked from the Macro menu of FC software.
