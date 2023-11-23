@@ -10,9 +10,11 @@ For this purpose I have used the ODB++ circuit published at
 https://www.comsol.com/model/importing-and-meshing-a-pcb-geometry-from-an-odb-archive-47681.
 Thanks to the great efficiency of klayout code in dealing with large gds circuit, layoutDD may be used also in more complex cases provided that the 
 extracted subdomain is limited to a reasonable size. In fact, in the company where I am employed, I have successfully tested the layoutDD
-code on a very large and complex digital circuit but I am not allowd to publish these data. The final purpose of the layoutDD project is indeed  to make it
+code on a very large and complex digital circuit but I am not allowd to publish these data.
+The final purpose of the layoutDD project is indeed  to make it
 to support the EmCAD project (see at https://github.com/wsteffe/EmCAD and http://www.hierarchical-electromagnetics.com) in the hierarchical electromagnetic 
-simulation of large RF and digital PCB circuits.
+simulation of large RF and digital PCB circuits. The basic strategy behynd layoutDD and EmCAD can be synthetized in the saying 
+"you can well eat a big elephant but only in small bites".
 
 
 There is a redundancy in the set of data using in layoutDD import command because the geometrical shapes are described in gds file and also in the dxf file 
