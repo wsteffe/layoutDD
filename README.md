@@ -14,7 +14,7 @@ code on a very large and complex digital circuit but I am not allowd to publish 
 The final purpose of the layoutDD project is indeed  to make it
 to support the EmCAD project (see at https://github.com/wsteffe/EmCAD and http://www.hierarchical-electromagnetics.com) in the hierarchical electromagnetic 
 simulation of large RF and digital PCB circuits. The basic strategy behynd layoutDD and EmCAD can be synthetized in the saying 
-"you can well eat a big elephant but only in small bites".
+"*you can well eat a big elephant but only in small bite*s".
 
 
 There is a redundancy in the set of data using in layoutDD import command because the geometrical shapes are described in gds file and also in the dxf file 
