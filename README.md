@@ -74,7 +74,7 @@ A minimal operation sequence is:
   * The project may be closed with the normal command "File/Close All" but it should be reopened, when needed, using the command "Open DD Prject" included 
     in the layoutDD menu and then selecting, in command window, the gds file associated with the imported circuit.
   
-  A new file named "Region_1.FCStd" is generated in the project Subfolder named "Subdomains".
+  The layoutDD command Make Subdomains generates a new file named "Region_1.FCStd" inside the project Subfolder named "Subdomains".
   This document contains a 3D model of the extracted geometry which can be opened with the FreeCAD software available at https://github.com/realthunder/FreeCAD/releases.
   The geometrical elements are all hidden once the document is opened in the FreeCAD. 
   The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
