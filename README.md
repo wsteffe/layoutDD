@@ -70,11 +70,11 @@ A minimal operation sequence is:
   * Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
   * Select the new region named Region_1 and the layer 0/0@2 where @2 is the tag associated with the view of partiton.gds. 
   * Draw a closed polygon on the selected layer.
-  * Use command Make Subdomain from layoutDD menu.
+  * Use the command "Make Subdomain" from the layoutDD menu.
   * The project may be closed with the normal command "File/Close All" but it should be reopened, when needed, using the command "Open DD Prject" included 
     in the layoutDD menu and then selecting, in command window, the gds file associated with the imported circuit.
   
-  The layoutDD command Make Subdomains generates a new file named "Region_1.FCStd" inside the project Subfolder named "Subdomains".
+  The layoutDD command "Make Subdomain" generates a new file named "Region_1.FCStd" inside the project Subfolder named "Subdomains".
   This document contains a 3D model of the extracted geometry which can be opened with the FreeCAD software available at https://github.com/realthunder/FreeCAD/releases.
   The geometrical elements are all hidden once the document is opened in the FreeCAD. 
   The visibility and a better color setting can be established with the macro setPCBvisibility.py (available from the subfolder python/FCmacro) 
