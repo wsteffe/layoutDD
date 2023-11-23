@@ -109,9 +109,12 @@ def openProject():
     filePath,fext  =os.path.splitext(gdsPath)
     globalVar.projectDir,globalVar.fileName = os.path.split(filePath) 
     globalVar.stack=readStack(filePath+".stack")
-    mainWindow     = pya.Application.instance().main_window()
-    technology     =pya.Technology()
+    mainWindow =pya.Application.instance().main_window()
+    technology =pya.Technology()
     technology.load(filePath+".lyt")
+    if not pya.Technology().has_technology(technology.name):
+       technology=pya.Technology().create_technology(technology.name)
+       technology.load(filePath+".lyt")
     mainCellView  = mainWindow.load_layout(gdsPath,technology.name,1)
     mainLayout    = mainCellView.layout()
     dxf_unit      = mainLayout.technology().load_layout_options.dxf_unit

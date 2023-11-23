@@ -31,7 +31,8 @@ if platform.system()=="Windows":
       if re.search(pattern, normpath):
           sys.path.append(normpath)
           sys.path.append(normpath+"../bin")
-#          pya.MessageBox.info("Information", normpath+" has been appended to python path", pya.MessageBox.Ok)
+          sys.path.append(normpath+"../lib")
+#          pya.MessageBox.info("Information", normpath+", "+normpath+"../bin"+" and "+normpath+"../lib"+" were appended to python path", pya.MessageBox.Ok)
           break
 
 
