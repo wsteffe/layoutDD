@@ -30,6 +30,7 @@ def readStack(stack_path):
           if len(line.strip()) > 0:
             line=line.split('#')[0]
             [ldata,zdata]=line.split(':')
+            ldata=ldata.strip()
             stack[ldata]=zdata.split()
     return stack
 

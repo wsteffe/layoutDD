@@ -29,12 +29,12 @@ class ZextentDialog(pya.QDialog):
       self.z2 = QLabel('Zmax')       
 
       # creating a line edit 
-      self.nameLineEdit1 = QLineEdit(self.formGroupBox)
-      vb.addWidget(self.z1)
-      vb.addWidget(self.nameLineEdit1)
       self.nameLineEdit2 = QLineEdit(self.formGroupBox)
       vb.addWidget(self.z2)
       vb.addWidget(self.nameLineEdit2)
+      self.nameLineEdit1 = QLineEdit(self.formGroupBox)
+      vb.addWidget(self.z1)
+      vb.addWidget(self.nameLineEdit1)
       if REGION_KEY in stack:
         self.nameLineEdit1.setText(stack[REGION_KEY][0])
         self.nameLineEdit2.setText(stack[REGION_KEY][1])
@@ -72,6 +72,22 @@ class ZextentDialog(pya.QDialog):
       # closing the window 
       self.close()
 
+def putOnDielBoundary(z):
+    import globalVar
+    dist=1.e10
+    t=z
+    for k in globalVar.stack.keys():
+       if len(globalVar.stack[k]) >3:
+          [prefix,z0,z1,op,order]=globalVar.stack[k]
+          d=abs(float(z)-float(z0))
+          if d<dist:
+             t=z0
+             dist=d
+          d=abs(float(z)-float(z1))
+          if d<dist:
+             t=z1
+             dist=d
+    return t
 
 
 def newRegion():
@@ -90,6 +106,8 @@ def newRegion():
 
     GUI_Klayout = ZextentDialog(REGION_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
+    globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][0])
+    globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][1])
 
     loaders.saveStack('partition.stack',globalVar.partition_stack)
 

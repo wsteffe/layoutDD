@@ -64,7 +64,8 @@ A minimal operation sequence is:
 
   * Create a technology using the klayout command "Tool/Manage Technology" and set the associated dxf unit for a proper reading of the dxf file. 
     This unit can be specified in the tab "Reader Options/DXF" of the created technology. Set the technology in the GUI selector.
-    If the dxf unit is correct there should be a perfect fitting (same size) between the geometries described in gds and dxf files once opened in the klayout viewer. 
+    If the dxf unit is correct there should be a perfect fitting (same size) between the geometries described in gds and dxf files once opened in the klayout viewer.
+	For the example given in the Test folder the correct DXF file unit is 25.4 um (1 mil).
   * Open the gds file with the normal open command in Klayout File menu.
   * Use command Import Layout from layoutDD menu.
   * Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
