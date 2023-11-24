@@ -957,7 +957,7 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
      if layerId[i]<0:
         continue
      points=[]
-     tmp= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,layerId[i]) if itr.shape().is_polygon()]
+     tmp= [itr.shape().polygon.transformed(itr.trans()) for itr in cellLayout.begin_shapes(cell,layerId[i]) if(itr.shape().is_polygon() or itr.shape().is_box())]
      if tmp:
         poly=tmp[0]
         for pt in poly.each_point_hull():
