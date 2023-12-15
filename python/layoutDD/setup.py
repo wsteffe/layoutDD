@@ -4,7 +4,7 @@ ACTIONS = []
 layerMap=None
 
 def installRequirements():
-   import pkg_resources
+   import importlib.util
    import pip
    import sys
    import os
@@ -16,11 +16,10 @@ def installRequirements():
          line=line.rstrip()
          if len(line)>0:
              required.add(line)
-   installed = {pkg.key for pkg in pkg_resources.working_set}
-   missing = required - installed
-   for package in missing:
-      pya.MessageBox.info("Information", "Install "+package+" ?", pya.MessageBox.Ok)
-      pip.main(['install', package])
+   for package in required:
+      if importlib.util.find_spec(package) is None:
+         pya.MessageBox.info("Information", "Install "+package+" ?", pya.MessageBox.Ok)
+         pip.main(['install', package])
 
 
 

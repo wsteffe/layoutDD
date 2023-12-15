@@ -23,18 +23,11 @@ libPath  = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "pytho
 if not libPath in sys.path:
    sys.path.append(libPath)
 
-if platform.system()=="Windows":
-   user=os.getlogin()
-   pattern = "FreeCAD-Link-Tip-Win-x86_64-py3.8-[0-9]+/Mod$"
-   for dirpath, dirnames, filenames in os.walk("C:/Users/"+user+"/AppData/Roaming/"):
-      normpath=dirpath.replace('\\', '/')
-      if re.search(pattern, normpath):
-          sys.path.append(normpath)
-          sys.path.append(normpath+"../bin")
-          sys.path.append(normpath+"../lib")
-#          pya.MessageBox.info("Information", normpath+", "+normpath+"../bin"+" and "+normpath+"../lib"+" were appended to python path", pya.MessageBox.Ok)
-          break
-
+FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "python/FreeCAD"))
+ 
+FCbinPath =os.path.realpath(FCdir+"/bin")
+if not FCbinPath in sys.path:
+   sys.path.append(FCbinPath)
 
 #pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
 

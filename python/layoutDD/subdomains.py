@@ -557,7 +557,6 @@ def makeLayerFaces1(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPol
 def makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly=False):
     import FreeCAD
     import Part
-    from BOPTools.GeneralFuseResult import GeneralFuseResult
     import globalVar
     contWire=Part.Wire(FCclipShape.Edges)
     face=Part.Face(contWire)
@@ -620,8 +619,8 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
    import os,platform
    from operator import itemgetter
    import FreeCAD
-   import Import,Part
-   from BOPTools.GeneralFuseResult import GeneralFuseResult
+   import Part
+   import Import
    import globalVar
 #   homedir = os.path.expanduser("~")
 #   osType=platform.system()
