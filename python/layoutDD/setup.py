@@ -22,6 +22,31 @@ def installRequirements():
          pip.main(['install', package])
 
 
+def installFreeCAD():
+    import os
+    from git import Repo
+    repo_url="https://github.com/wsteffe/layoutDD_FreeCAD"
+    username = os.getenv("USERNAME")
+    installPath="c:/users/"+username+"/AppData/Roaming/layoutDD_FreeCAD"
+    repo = Repo.clone_from(repo_url, installPath)
+
+
+def installFreeCAD_():
+    import tempfile,requests,os,zipfile
+    zipurl="https://raw.githubusercontent.com/wsteffe/layoutDD_FreeCAD/main/FreeCAD.zip"
+    username = os.getenv("USERNAME")
+    installPath="c:/users/"+username+"/AppData/Roaming/"
+    zip_path=None
+    with tempfile.NamedTemporaryFile(delete=False) as tmpf:
+       zip_path=tmpf.name
+       with requests.get(zipurl) as r:
+          r.raise_for_status()
+          for chunk in r.iter_content(chunk_size=8192): 
+             tmpf.write(chunk)
+    with zipfile.ZipFile(zip_path, "r") as f:
+       f.extractall(installPath)
+
+
 
 def registerToolbarItems():
 
@@ -102,6 +127,14 @@ def registerToolbarItems():
   act.on_triggered(installRequirements)
   menu.insert_item(s1+".makeSubdomain+", "installRequirements", act)
   ACTIONS.append(act)
+
+  act = pya.Action()
+  act.title = "Install FreeCAD"
+  act.on_triggered(installFreeCAD)
+  menu.insert_item(s1+".installRequirements+", "installFreeCAD", act)
+  ACTIONS.append(act)
+
+
 
 
 
