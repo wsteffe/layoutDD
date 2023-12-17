@@ -22,7 +22,7 @@ def installRequirements():
          pip.main(['install', package])
 
 
-def installFreeCAD():
+def installFreeCAD_():
     import os
     from git import Repo
     repo_url="https://github.com/wsteffe/layoutDD_FreeCAD"
@@ -31,9 +31,9 @@ def installFreeCAD():
     repo = Repo.clone_from(repo_url, installPath)
 
 
-def installFreeCAD_():
+def installFreeCAD():
     import tempfile,requests,os,zipfile
-    zipurl="https://raw.githubusercontent.com/wsteffe/layoutDD_FreeCAD/main/FreeCAD.zip"
+    zipurl="https://github.com/wsteffe/layoutDD_FreeCAD/archive/refs/tags/v0.1.zip"
     username = os.getenv("USERNAME")
     installPath="c:/users/"+username+"/AppData/Roaming/"
     zip_path=None
@@ -41,12 +41,13 @@ def installFreeCAD_():
        zip_path=tmpf.name
        with requests.get(zipurl) as r:
           r.raise_for_status()
-          for chunk in r.iter_content(chunk_size=8192): 
-             tmpf.write(chunk)
+          for chunk in r.iter_content(chunk_size=512 * 1024): 
+              if chunk: # filter out keep-alive new chunks
+                 tmpf.write(chunk)
     with zipfile.ZipFile(zip_path, "r") as f:
        f.extractall(installPath)
-
-
+    os.rename(installPath+"layoutDD_FreeCAD-0.1",installPath+"layoutDD_FreeCAD")
+    os.remove(zip_path)
 
 def registerToolbarItems():
 
