@@ -1,4 +1,5 @@
 import pya
+import sys
 
 ACTIONS = []
 layerMap=None
@@ -123,17 +124,18 @@ def registerToolbarItems():
   menu.insert_item(s1+".deleteWGP+", "makeSubdomain", act)
   ACTIONS.append(act)
 
-  act = pya.Action()
-  act.title = "Install Python Dependencies"
-  act.on_triggered(installRequirements)
-  menu.insert_item(s1+".makeSubdomain+", "installRequirements", act)
-  ACTIONS.append(act)
+  if sys.platform=="win32":
+     act = pya.Action()
+     act.title = "Install Python Dependencies"
+     act.on_triggered(installRequirements)
+     menu.insert_item(s1+".makeSubdomain+", "installRequirements", act)
+     ACTIONS.append(act)
 
-  act = pya.Action()
-  act.title = "Install FreeCAD"
-  act.on_triggered(installFreeCAD)
-  menu.insert_item(s1+".installRequirements+", "installFreeCAD", act)
-  ACTIONS.append(act)
+     act = pya.Action()
+     act.title = "Install FreeCAD"
+     act.on_triggered(installFreeCAD)
+     menu.insert_item(s1+".installRequirements+", "installFreeCAD", act)
+     ACTIONS.append(act)
 
 
 

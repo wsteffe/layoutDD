@@ -23,11 +23,11 @@ libPath  = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "pytho
 if not libPath in sys.path:
    sys.path.append(libPath)
 
-FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "../../../../AppData/Roaming/layoutDD_FreeCAD"))
- 
-FCbinPath =os.path.realpath(FCdir+"/bin")
-if not FCbinPath in sys.path:
-   sys.path.append(FCbinPath)
+if sys.platform=="win32":
+  FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "../../../../AppData/Roaming/layoutDD_FreeCAD"))
+  FCbinPath =os.path.realpath(FCdir+"/bin")
+  if not FCbinPath in sys.path:
+     sys.path.append(FCbinPath)
 
 #pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
 
