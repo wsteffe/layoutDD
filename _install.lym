@@ -18,7 +18,7 @@ import os,sys
 if sys.platform=="win32":
   from layoutDD import setup
   setup.installRequirements()
-  FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "../../../../AppData/Roaming/layoutDD_FreeCAD"))
+  FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "../../../AppData/Roaming/layoutDD_FreeCAD"))
   if not os.path.exists(FCdir):
      setup.installFreeCAD()
 
