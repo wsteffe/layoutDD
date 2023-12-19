@@ -29,11 +29,16 @@ class ZextentDialog(pya.QDialog):
       self.z1 = QLabel('Zmin')
       self.z2 = QLabel('Zmax')       
 
+      # double validator 
+      self.dvalidator = QDoubleValidator(self)
+
       # creating a line edit 
       self.nameLineEdit2 = QLineEdit(self.formGroupBox)
+      self.nameLineEdit2.setValidator(self.dvalidator)
       vb.addWidget(self.z2)
       vb.addWidget(self.nameLineEdit2)
       self.nameLineEdit1 = QLineEdit(self.formGroupBox)
+      self.nameLineEdit1.setValidator(self.dvalidator)
       vb.addWidget(self.z1)
       vb.addWidget(self.nameLineEdit1)
       if REGION_KEY in stack:
@@ -69,6 +74,9 @@ class ZextentDialog(pya.QDialog):
   # get info method called when form is accepted 
   def getInfo(self): 
       # printing the form information 
+      if ',' in self.nameLineEdit1.text or ',' in self.nameLineEdit2.text:
+         pya.MessageBox.info("Information", "Invalid input data", pya.MessageBox.Ok)
+         return
       self.stack[self.REGION_KEY]=[self.nameLineEdit1.text,self.nameLineEdit2.text]
       # closing the window 
       self.close()
