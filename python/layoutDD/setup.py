@@ -19,7 +19,7 @@ def installRequirements():
              required.add(line)
    for package in required:
       if importlib.util.find_spec(package) is None:
-         pya.MessageBox.info("Information", "Install "+package+" ?", pya.MessageBox.Ok)
+         pya.MessageBox.info("Information", "Installing "+package+" with pip", pya.MessageBox.Ok)
          pip.main(['install', package])
 
 

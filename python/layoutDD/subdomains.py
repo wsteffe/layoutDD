@@ -13,6 +13,7 @@ class ZextentDialog(pya.QDialog):
 
       self.REGION_KEY=REGION_KEY
       self.stack=stack
+      self.isRejected=False
 
       # setting window title 
       self.setWindowTitle("Region Z extent") 
@@ -47,10 +48,10 @@ class ZextentDialog(pya.QDialog):
 
       #(self.buttonBox.)
 
-      # adding action when form is accepted 
-      self.cancel.clicked(lambda button: self.reject())
-
       # addding action when form is rejected 
+      self.cancel.clicked(lambda button: self.quit())
+
+      # adding action when form is accepted 
       self.ok.clicked(self.getInfo)
 
       # creating a vertical layout 
@@ -71,6 +72,11 @@ class ZextentDialog(pya.QDialog):
       self.stack[self.REGION_KEY]=[self.nameLineEdit1.text,self.nameLineEdit2.text]
       # closing the window 
       self.close()
+
+  # get info method called when form is accepted 
+  def quit(self): 
+      self.isRejected=True
+      self.reject()
 
 def putOnDielBoundary(z):
     import globalVar
@@ -106,6 +112,8 @@ def newRegion():
 
     GUI_Klayout = ZextentDialog(REGION_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
+    if GUI_Klayout.isRejected:
+        return
     globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][0])
     globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][1])
 
@@ -143,6 +151,8 @@ def editRegion():
 
     GUI_Klayout = ZextentDialog(REGION_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
+    if GUI_Klayout.isRejected:
+        return
 #    print("Zstart : {0}".format(partition_stack[REGION_KEY][0])) 
 #    print("Zend : {0}".format(partition_stack[REGION_KEY][1]))         
 
@@ -166,6 +176,8 @@ def newWGP():
     WGP_KEY= "WGP_"+str(WGI)
     GUI_Klayout = ZextentDialog(REGION_KEY+"_"+WGP_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
+    if GUI_Klayout.isRejected:
+        return
     loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
     cellv_lid =cellLayout.layer(WGI, 0)
     cellv_lif =cellLayout.get_info(cellv_lid)
@@ -203,6 +215,8 @@ def editWGP():
         return
     GUI_Klayout = ZextentDialog(k,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
+    if GUI_Klayout.isRejected:
+        return
     loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
