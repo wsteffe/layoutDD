@@ -125,7 +125,8 @@ def newRegion():
     globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][0])
     globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][1])
 
-    loaders.saveStack('partition.stack',globalVar.partition_stack)
+    partitionPath=globalVar.projectDir+"/partition"
+    loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
 
     cell         = cellLayout.create_cell(REGION_KEY)
     cellLayer    = cellLayout.layer(0,0)
@@ -133,7 +134,7 @@ def newRegion():
     option       = pya.SaveLayoutOptions()
     layoutView   = mainWindow.current_view()
     layoutView.add_missing_layers()
-    layoutView.save_as(cellViewI,f"partition.gds", option)
+    layoutView.save_as(cellViewI,partitionPath+".gds", option)
 
 
 def name2index(name):
@@ -310,7 +311,7 @@ def copyInterceptedLayers(layoutView):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if not lyp.name:
+       if not lyp.source_name:
            continue
        if lyp.cellview()==cellViewId and lyp.visible:
           cellv_lif = cellLayout.get_info(lid)
@@ -318,9 +319,9 @@ def copyInterceptedLayers(layoutView):
           if (ln,dt)==(0,1):
              lyp.visible=False
        if lyp.cellview()==mainCellViewId:
-          if lyp.name not in globalVar.stack:
+          if lyp.source_name not in globalVar.stack:
             continue
-          [prefix,z0,z1,op,order]=globalVar.stack[lyp.name]
+          [prefix,z0,z1,op,order]=globalVar.stack[lyp.source_name]
           z0=float(z0)
           z1=float(z1)
           if z0>cell_z1 or z1<cell_z0:
@@ -331,7 +332,7 @@ def copyInterceptedLayers(layoutView):
              continue
           cellv_lid = cellLayout.layer(ln, dt)
           cellv_lif = cellLayout.get_info(cellv_lid)
-          cellv_lif.name= lyp.name
+          cellv_lif.name= lyp.source_name
           cellLayout.set_info(cellv_lid,cellv_lif)
     layoutView.add_missing_layers()
     saveActiveCell.saveActiveCell()
@@ -385,7 +386,7 @@ def evalLayerRegion(lname):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if lyp.name!=lname:
+       if lyp.source_name!=lname:
            continue
        layerReg =pya.Region([itr.shape().polygon.transformed(itr.trans()) for itr in mainLayout.begin_shapes(mainCell, lid)])
    return layerReg

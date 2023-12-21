@@ -17,7 +17,7 @@ def autoNumbersForNames(layoutView,cellView):
     dt=0
     for name in layerNames:
         ln=ln+1
-        numbersForName[name]=[ln, dt]
+        numberForName[name]=[ln, dt]
     return numberForName
 
 
