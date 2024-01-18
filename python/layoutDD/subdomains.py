@@ -386,7 +386,7 @@ def evalLayerRegion(lname):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if lyp.name!=lname:
+       if lyp.name!=lname and lyp.source_name!=lname:
            continue
        layerReg =pya.Region([itr.shape().polygon.transformed(itr.trans()) for itr in mainLayout.begin_shapes(mainCell, lid)])
    return layerReg
