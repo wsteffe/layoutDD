@@ -311,7 +311,7 @@ def copyInterceptedLayers(layoutView):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if not lyp.source_name:
+       if not lyp.name:
            continue
        if lyp.cellview()==cellViewId and lyp.visible:
           cellv_lif = cellLayout.get_info(lid)
@@ -319,7 +319,7 @@ def copyInterceptedLayers(layoutView):
           if (ln,dt)==(0,1):
              lyp.visible=False
        if lyp.cellview()==mainCellViewId:
-          if lyp.source_name not in globalVar.stack:
+          if lyp.name not in globalVar.stack:
             continue
           [prefix,z0,z1,op,order]=globalVar.stack[lyp.source_name]
           z0=float(z0)
@@ -386,7 +386,7 @@ def evalLayerRegion(lname):
        lid = lyp.layer_index()
        if lid<0:
            continue
-       if lyp.source_name!=lname:
+       if lyp.name!=lname:
            continue
        layerReg =pya.Region([itr.shape().polygon.transformed(itr.trans()) for itr in mainLayout.begin_shapes(mainCell, lid)])
    return layerReg
