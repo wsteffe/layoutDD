@@ -8,8 +8,18 @@ def saveFlatDXF(fpath):
     tdoc = ezdxf.new()
     importer = Importer(sdoc,tdoc)
     smsp= sdoc.modelspace()
-    exploded=disassemble.recursive_decompose(smsp)
-    importer.import_entities(exploded)
+    tmsp= tdoc.modelspace()
+    decomposed=disassemble.recursive_decompose(smsp)
+    to_keep=["LINE","POINT","VERTEX","SPLINE","CIRCLE","ARC","ELLIPSE","POLYLINE","LWPOLYLINE"]
+    to_explode=["POLYLINE","LWPOLYLINE"]
+    for entity in decomposed:
+        if entity.dxftype() in to_keep:
+            importer.import_entity(entity)
+    for entity in tmsp:
+        if entity.dxftype() in to_explode:
+            entity.explode()
+
+#   importer.import_entities(decomposed)
     tdoc.saveas(fpath+"_flat.dxf")
 
 def saveStack(stack_path,stack):
@@ -129,7 +139,7 @@ def openProject():
         cellView = layoutView.cellview(cellViewId)
         cellLayout= cellView.layout()
         if os.path.exists(partitionPath+".lyp"):
-           cellView.load_layer_props(partitionPath+".lyp",cellViewId)
+           layoutView.load_layer_props(partitionPath+".lyp",cellViewId)
 
 
 

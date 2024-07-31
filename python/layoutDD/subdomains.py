@@ -284,7 +284,11 @@ def interceptedLayer(layerName,cellName):
     if cellName not in globalVar.partition_stack:
         return False
     [prefix,z0,z1,op,order]=globalVar.stack[layerName]
+    z0=float(z0)
+    z1=float(z1)
     [cell_z0,cell_z1]=globalVar.partition_stack[cellName]
+    cell_z0=float(cell_z0)
+    cell_z1=float(cell_z1)
     return z0<=cell_z1 and z1>=cell_z0
 
 
@@ -625,7 +629,7 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPol
        else:
           slicedFace=[]
        layerFaces=[]
-       shift=2/FC_unit #2 um
+       shift=3/FC_unit #3 um
        for face in slicedFace:
          Pc=getPointInFace(face,shift)
          xc=Pc[0]*FC_unit/db_unit
@@ -785,7 +789,15 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
       z1i=float(z1i)
       z0i=max(cell_z0,z0i)
       z1i=min(cell_z1,z1i)
+      if opi=='vsurf' or opi=='hsurf':
+         shapeType="surf"
+      elif opi=='add' or opi=='ins':
+         shapeType="solid"
+      else:
+         shapeType="solid"
       if z1i<z0i:
+          continue
+      if z1i==z0i and shapeType=="solid":
           continue
       if prefix:
          label=prefix+"_"+lname
@@ -885,12 +897,6 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
          surf=addHSurf(FCdoc,wires)
          surf.Label = f'{lname}_surf'
          layerBody.addObject(surf)
-      if opi=='vsurf' or opi=='hsurf':
-         shapeType="surf"
-      elif opi=='add' or opi=='ins':
-         shapeType="solid"
-      else:
-         shapeType="solid"
       FCdoc.recompute()
       if opi=='ins' or opi=='cut' and shapeType=="solid":
            tool=None
@@ -1036,16 +1042,16 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
       for entity in msp:
          if not entity.dxf.hasattr("layer"):
              continue
-         if interceptedLayer(entity.dxf.layer,cell.name):
-            interceptedLayers.add(entity.dxf.layer)
-            if entity.dxftype() in extractedTypes:
-              bb = bbox.extents([entity])
-              ll=bb.extmin
-              ur=bb.extmax
-              kbb= pya.Box(ll[0]*dxf_unit/dbu,ll[1]*dxf_unit/dbu,ur[0]*dxf_unit/dbu,ur[1]*dxf_unit/dbu)
-              touchPoly=[poly for poly in cellShape.each_touching(kbb)]
-              if len(touchPoly)>0:
-                 exporter.write(entity)
+         if entity.dxftype() in extractedTypes:
+            if interceptedLayer(entity.dxf.layer,cell.name):
+               interceptedLayers.add(entity.dxf.layer)
+               bb = bbox.extents([entity])
+               ll=bb.extmin
+               ur=bb.extmax
+               kbb= pya.Box(ll[0]*dxf_unit/dbu,ll[1]*dxf_unit/dbu,ur[0]*dxf_unit/dbu,ur[1]*dxf_unit/dbu)
+               touchPoly=[poly for poly in cellShape.each_touching(kbb)]
+               if len(touchPoly)>0:
+                  exporter.write(entity)
     finally:
       exporter.close()
       mainDoc.close()

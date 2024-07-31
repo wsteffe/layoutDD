@@ -28,6 +28,10 @@ if sys.platform=="win32":
   FCbinPath =os.path.realpath(FCdir+"/bin")
   if not FCbinPath in sys.path:
      sys.path.append(FCbinPath)
+elif sys.platform=="linux":
+  FCpath=os.path.realpath("/usr/local/lib/")
+  if not FCpath in sys.path:
+     sys.path.append(FCpath)
 
 #pya.MessageBox.info("Information", "This is the new macro created with the sample macro package", pya.MessageBox.Ok)
 
