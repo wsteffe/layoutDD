@@ -1,0 +1,10 @@
+scale:  1.00
+AIR:             DIEL  0.000 17.000  add    0
+TOP:             BC    5.500  5.518  ins    1
+GND1:            BC    5.182  5.200  ins    1
+GND2:            BC    4.768  4.786  ins    1
+GND3:            BC    4.618  4.636  ins    1
+BOTTOM:          BC    4.300  4.318  ins    1
+Megtron6:        DIEL  4.318  5.500 add    0
+VIAS:            BC    4.318  5.500 ins    2
+

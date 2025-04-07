@@ -104,6 +104,8 @@ def importLayout():
       cellView   = mainWindow.create_layout(techName,2)
       cellIndex  = cellView.index()
       cellLayout = cellView.layout()
+      cell       = cellLayout.create_cell("TOP")
+      cellView.cell= cell
       option     = pya.SaveLayoutOptions()
       layoutView = mainWindow.current_view()
       layoutView.save_as(cellIndex,partitionPath+".gds", option)

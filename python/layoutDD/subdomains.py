@@ -106,18 +106,20 @@ def putOnDielBoundary(z):
 
 def newRegion():
     import os
-    import loaders,globalVar
+    import saveActiveCell,loaders,globalVar
 
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
     cellView     = layoutView.cellview(1)
     cellViewI    = cellView.index()
+    cell         = cellView.cell
     cellLayout   = cellView.layout()
-    REGION_KEY="Region_1"
 
+    REGI=1
     if len(globalVar.partition_stack)>0:
-        REGION_KEY= "Region_"+str(1+max( [int(k.split('_')[1]) for k in globalVar.partition_stack.keys()]))
+        REGI=1+max([int(k.split('_')[1]) for k in globalVar.partition_stack.keys()])
 
+    REGION_KEY= "Region_"+str(REGI)
     GUI_Klayout = ZextentDialog(REGION_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
     if GUI_Klayout.isRejected:
@@ -128,13 +130,16 @@ def newRegion():
     partitionPath=globalVar.projectDir+"/partition"
     loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
 
-    cell         = cellLayout.create_cell(REGION_KEY)
-    cellLayer    = cellLayout.layer(0,0)
-    cellView.cell= cell
-    option       = pya.SaveLayoutOptions()
-    layoutView   = mainWindow.current_view()
-    layoutView.add_missing_layers()
-    layoutView.save_as(cellViewI,partitionPath+".gds", option)
+    cellv_lid =cellLayout.layer(REGI,0)
+    cellv_lif =cellLayout.get_info(cellv_lid)
+    if cellv_lif.name!=REGION_KEY:
+       cellv_lif.name= REGION_KEY
+       cellLayout.set_info(cellv_lid,cellv_lif)
+       option       = pya.SaveLayoutOptions()
+       layoutView   = mainWindow.current_view()
+       layoutView.add_missing_layers()
+       saveActiveCell.saveActiveCell()
+
 
 
 def name2index(name):
@@ -147,6 +152,51 @@ def name2index(name):
          exit
     return str(I)
 
+def newWGP():
+    import os
+    import saveActiveCell,loaders,globalVar
+    mainWindow   = pya.Application.instance().main_window()
+    layoutView   = mainWindow.current_view()
+    cellView     = layoutView.cellview(1)
+    cellViewI    = cellView.index()
+    cellLayout   = cellView.layout()
+    lyp=layoutView.current_layer.current()
+    if lyp.cellview()!=cellViewI:
+        return
+    lid = lyp.layer_index()
+    if lid<0:
+        return
+    cellv_lif = cellLayout.get_info(lid)
+    REGI,dt = cellv_lif.layer, cellv_lif.datatype
+    REGION_KEY= "Region_"+str(REGI)
+
+    wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
+    WGI=1
+    if len(wgp_keys)>0:
+        WGI=1+max([int(k.split('_')[3]) for k in wgp_keys])
+    WGP_KEY= "WGP_"+str(WGI)
+    GUI_Klayout = ZextentDialog(REGION_KEY+"_"+WGP_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
+    GUI_Klayout.exec_()
+    if GUI_Klayout.isRejected:
+        return
+    partitionPath=globalVar.projectDir+"/partition"
+    loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
+    cellv_lid =cellLayout.layer(REGI,WGI)
+    cellv_lif =cellLayout.get_info(cellv_lid)
+    if cellv_lif.name!=REGION_KEY+'_'+WGP_KEY:
+       cellv_lif.name= REGION_KEY+'_'+WGP_KEY
+       cellLayout.set_info(cellv_lid,cellv_lif)
+       option       = pya.SaveLayoutOptions()
+       layoutView   = mainWindow.current_view()
+       layoutView.add_missing_layers()
+       saveActiveCell.saveActiveCell()
+
+    option       = pya.SaveLayoutOptions()
+    layoutView   = mainWindow.current_view()
+    layoutView.add_missing_layers()
+    layoutView.save_as(cellViewI,partitionPath+".gds", option)
+
+
 def editRegion():
     import os
     import loaders,globalVar
@@ -154,9 +204,18 @@ def editRegion():
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
     cellView     = layoutView.cellview(1)
-    cell         = cellView.cell
+    cellViewId   = cellView.index()
     cellLayout   = cellView.layout()
-    REGION_KEY=cell.name
+
+    lyp=layoutView.current_layer.current()
+    if lyp.cellview()!=cellViewId:
+        return
+    lid = lyp.layer_index()
+    if lid<0:
+        return
+    cellv_lif = cellLayout.get_info(lid)
+    REGI,dt = cellv_lif.layer, cellv_lif.datatype
+    REGION_KEY= "Region_"+str(REGI)
 
     GUI_Klayout = ZextentDialog(REGION_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
@@ -168,36 +227,6 @@ def editRegion():
     loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
-def newWGP():
-    import os
-    import saveActiveCell,loaders,globalVar
-    mainWindow   = pya.Application.instance().main_window()
-    layoutView   = mainWindow.current_view()
-    cellView     = layoutView.cellview(1)
-    cellViewId   = cellView.index()
-    cell         = cellView.cell
-    cellLayout   = cellView.layout()
-    REGION_KEY=cell.name
-    wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
-    WGI=1
-    if len(wgp_keys)>0:
-        WGI=1+max([int(k.split('_')[3]) for k in wgp_keys])
-    WGP_KEY= "WGP_"+str(WGI)
-    GUI_Klayout = ZextentDialog(REGION_KEY+"_"+WGP_KEY,globalVar.partition_stack,pya.Application.instance().main_window())
-    GUI_Klayout.exec_()
-    if GUI_Klayout.isRejected:
-        return
-    loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
-    cellv_lid =cellLayout.layer(WGI, 0)
-    cellv_lif =cellLayout.get_info(cellv_lid)
-    if cellv_lif.name!=WGP_KEY:
-       cellv_lif.name= WGP_KEY
-       cellLayout.set_info(cellv_lid,cellv_lif)
-       option       = pya.SaveLayoutOptions()
-       layoutView   = mainWindow.current_view()
-       layoutView.add_missing_layers()
-       saveActiveCell.saveActiveCell()
-
 
 def editWGP():
     import os
@@ -206,9 +235,8 @@ def editWGP():
     layoutView   = mainWindow.current_view()
     cellView     = layoutView.cellview(1)
     cellViewId   = cellView.index()
-    cell         = cellView.cell
     cellLayout   = cellView.layout()
-    REGION_KEY=cell.name
+
     lyp=layoutView.current_layer.current()
     if lyp.cellview()!=cellViewId:
         return
@@ -216,11 +244,11 @@ def editWGP():
     if lid<0:
         return
     cellv_lif = cellLayout.get_info(lid)
-    WGI,dt = cellv_lif.layer, cellv_lif.datatype
+    REGI,WGI = cellv_lif.layer, cellv_lif.datatype
+    REGION_KEY= "Region_"+str(REGI)
     WGP_KEY= "WGP_"+str(WGI)
-    wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
     k=REGION_KEY+"_"+WGP_KEY
-    if k not in wgp_keys:
+    if k not in globalVar.partition_stack.keys():
         return
     GUI_Klayout = ZextentDialog(k,globalVar.partition_stack,pya.Application.instance().main_window())
     GUI_Klayout.exec_()
@@ -228,6 +256,15 @@ def editWGP():
         return
     loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
+def deleteLayerView(layoutView,cellViewId,lid):
+   it = layoutView.begin_layers()
+   while not it.at_end():
+       if  it.current().cellview() == cellViewId and it.current().layer_index() == lid:
+           # Delete the layer
+           layoutView.delete_layer(it)
+       else:
+           # Advance the iterator
+           it.next()
 
 def deleteWGP():
     import os
@@ -238,7 +275,6 @@ def deleteWGP():
     cellViewId   = cellView.index()
     cell         = cellView.cell
     cellLayout   = cellView.layout()
-    REGION_KEY=cell.name
     lyp=layoutView.current_layer.current()
     if lyp.cellview()!=cellViewId:
         return
@@ -246,35 +282,56 @@ def deleteWGP():
     if lid<0:
         return
     cellv_lif = cellLayout.get_info(lid)
-    WGI,dt = cellv_lif.layer, cellv_lif.datatype
+    REGI,WGI = cellv_lif.layer, cellv_lif.datatype
+    REGION_KEY= "Region_"+str(REGI)
     WGP_KEY= "WGP_"+str(WGI)
-    wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
     k=REGION_KEY+"_"+WGP_KEY
-    if k not in wgp_keys:
+    if k != lyp.source_name:
+        return
+    if k not in globalVar.partition_stack.keys():
         return
     del globalVar.partition_stack[k]
     cell.clear(lid)
-    saveActiveCell.saveActiveCell()
-    loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
+    deleteLayerView(layoutView,cellViewId,lid)
+    cellLayout.delete_layer(lid)
+    partitionPath=globalVar.projectDir+"/partition"
+    loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
+    option  = pya.SaveLayoutOptions()
+    layoutView.save_as(cellViewId,partitionPath+".gds", option)
+    layoutView.save_layer_props(partitionPath+".lyp")
 
 
 def deleteRegion():
     import os
     import loaders, globalVar
-
     mainWindow   = pya.Application.instance().main_window()
     layoutView   = pya.Application.instance().main_window().current_view()
     cellView     = layoutView.cellview(1)
+    cellViewId   = cellView.index()
     cell         = cellView.cell
     cellLayout   = cellView.layout()
-    REGION_KEY=cell.name
-    cellI=cell.cell_index()
-    cellLayout.delete_cell(cellI)
-    region_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY)]
-    if region_keys:
-      for k in region_keys:
-        del globalVar.partition_stack[k]
-      loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
+    lyp=layoutView.current_layer.current()
+    if lyp.cellview()!=cellViewId:
+        return
+    lid = lyp.layer_index()
+    if lid<0:
+        return
+    cellv_lif = cellLayout.get_info(lid)
+    REGI,dt = cellv_lif.layer, cellv_lif.datatype
+    k= "Region_"+str(REGI)
+    if k != lyp.source_name:
+        return
+    if k not in globalVar.partition_stack.keys():
+        return
+    del globalVar.partition_stack[k]
+    cell.clear(lid)
+    deleteLayerView(layoutView,cellViewId,lid)
+    cellLayout.delete_layer(lid)
+    partitionPath=globalVar.projectDir+"/partition"
+    loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
+    option  = pya.SaveLayoutOptions()
+    layoutView.save_as(cellViewId,partitionPath+".gds", option)
+    layoutView.save_layer_props(partitionPath+".lyp")
 
 
 def interceptedLayer(layerName,cellName):
@@ -641,7 +698,7 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPol
 
 useBooleanFeature=True
 
-def create_3DSubdomain(cellName,dxf_unit,db_unit):  
+def create_3DSubdomain(regionName,dxf_unit,db_unit):  
    import ezdxf
    import os,platform
    from operator import itemgetter
@@ -709,11 +766,11 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
        obj.Group_EnableExport = True
        return obj
 
-   subdomain_path=globalVar.projectDir+"/Subdomains/"+cellName
+   subdomain_path=globalVar.projectDir+"/Subdomains/"+regionName
 
    logger = FreeCAD.Logger('layout2fc')
    
-   [cell_z0,cell_z1]=globalVar.partition_stack[cellName]
+   [cell_z0,cell_z1]=globalVar.partition_stack[regionName]
    cell_z0=float(cell_z0)
    cell_z1=float(cell_z1)
 
@@ -725,12 +782,12 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
    for layer in DXFdoc.layers:
       layerNames.add(layer.dxf.name)
 
-   l=len(cellName)
+   l=len(regionName)
    for k in globalVar.partition_stack.keys():
-      if not k.startswith(cellName) or len(k.split('_'))<=3:
+      if not k.startswith(regionName) or len(k.split('_'))<=3:
          continue
       lname=k[l+1:]
-      if lname not in stack.keys() and lname in layerNames and lname.startswith("WGP_"):
+      if lname not in stack.keys() and lname in layerNames and lname.startswith(regionName+"_WGP_"):
          op=None
          if globalVar.partition_stack[k][0]==globalVar.partition_stack[k][1]:
             op="hsurf"
@@ -749,6 +806,7 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
    params.SetBool('connectEdges', True)
+   params.SetBool('dxfUseLegacyImporter', True)
    FC_unit=1.e3   #expressed in um
    dxfScaling=float(dxf_unit*1.e-6) #dxfScaling = dxf_unit converted in meters
    params.SetFloat('dxfScaling', dxfScaling)
@@ -775,7 +833,7 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
 
    FClayerShapeFromName={}
    for layer in FClayers:
-      FClayerShapeFromName[layer.Name]=layer.Shape
+      FClayerShapeFromName[layer.Name.removeprefix("ENTITIES_")]=layer.Shape
       FCdoc.removeObject(layer.Name)
    FCclipShape = FClayerShapeFromName["ClippingPolygon"]
    if not FCclipShape.Edges:
@@ -954,7 +1012,7 @@ def create_3DSubdomain(cellName,dxf_unit,db_unit):
    return FCdoc
 
 
-def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
+def finalizeRegionDXF(layoutView,REGI,dxf_unit,interceptedLayers,subdomain_path):
    import ezdxf
    import os
    import globalVar
@@ -964,7 +1022,7 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
    cell = cellView.cell
 
    dbu=cellLayout.dbu
-   REGION_KEY=cell.name
+   REGION_KEY= "Region_"+str(REGI)
    wgp_keys = [ k for k in globalVar.partition_stack.keys() if k.startswith(REGION_KEY) and len(k.split('_'))>3]
    WGNum=0
    if len(wgp_keys)>0:
@@ -972,10 +1030,10 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
 
    layerId=[]
    layerName=[]
-   layerId.append(cell.layout().layer(0,0))
+   layerId.append(cell.layout().layer(REGI,0))
    layerName.append("ClippingPolygon")
    for i in range(WGNum):
-     lid =cellLayout.layer(i+1, 0)
+     lid =cellLayout.layer(REGI,i+1)
      layerId.append(lid)
      layerName.append(f"WGP_{i+1}")
 
@@ -1011,7 +1069,8 @@ def finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path):
    doc.save()
 
 
-def extractSubdomainDXF(cellName,layoutView,dxf_unit):
+def extractSubdomainDXF(REGI,layoutView,dxf_unit):
+    regionName= "Region_"+str(REGI)
     from ezdxf.addons import iterdxf
     from ezdxf import bbox
     import globalVar
@@ -1030,12 +1089,12 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
     cellFilePathSeg   = cellFilePath.replace("\\", "/").split("/")
     cellFname         = cellFilePathSeg[-1].split(".")[0]
     mainDoc = iterdxf.opendxf(globalVar.projectDir+"/"+globalVar.fileName+'_flat.dxf')
-    subdomain_path=globalVar.projectDir+"/Subdomains/"+cellName
+    subdomain_path=globalVar.projectDir+"/Subdomains/"+regionName
     exporter = mainDoc.export(subdomain_path+'.dxf')
     msp=mainDoc.modelspace()
     extractedTypes=["LINE","POINT","VERTEX","POLYLINE","LWPOLYLINE","SPLINE","CIRCLE","ARC","ELLIPSE"]
-    cellLy00Id=cell.layout().layer(0,0)
-    cellShape=cell.shapes(cellLy00Id)
+    cellLyId=cell.layout().layer(REGI,0)
+    cellShape=cell.shapes(cellLyId)
     interceptedLayers=set()
     dbu=cellLayout.dbu
     try:
@@ -1043,7 +1102,7 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
          if not entity.dxf.hasattr("layer"):
              continue
          if entity.dxftype() in extractedTypes:
-            if interceptedLayer(entity.dxf.layer,cell.name):
+            if interceptedLayer(entity.dxf.layer,regionName):
                interceptedLayers.add(entity.dxf.layer)
                bb = bbox.extents([entity])
                ll=bb.extmin
@@ -1055,7 +1114,7 @@ def extractSubdomainDXF(cellName,layoutView,dxf_unit):
     finally:
       exporter.close()
       mainDoc.close()
-      finalizeRegionDXF(layoutView,dxf_unit,interceptedLayers,subdomain_path)
+      finalizeRegionDXF(layoutView,REGI,dxf_unit,interceptedLayers,subdomain_path)
 
 
 def makeSubdomain():
@@ -1064,7 +1123,22 @@ def makeSubdomain():
     mainCellView      = layoutView.cellview(0)
     mainLayout        = mainCellView.layout()
     cellView= layoutView.active_cellview()
+    cellViewId= cellView.index()
     cellLayout= cellView.layout()
+
+    lyp=layoutView.current_layer.current()
+    if lyp.cellview()!=cellViewId:
+        return
+    lid = lyp.layer_index()
+    if lid<0:
+        return
+    cellv_lif = cellLayout.get_info(lid)
+    REGI,dt = cellv_lif.layer, cellv_lif.datatype
+    REGION_KEY= "Region_"+str(REGI)
+    if lyp.name!=REGION_KEY and lyp.source_name!=REGION_KEY:
+        pya.MessageBox.info("Information", "Please select Subdomain Region", pya.MessageBox.Ok)
+        return
+
     technology=cellLayout.technology()
     if cellLayout.technology() is not None:
        dxf_unit  = cellLayout.technology().load_layout_options.dxf_unit
@@ -1072,11 +1146,8 @@ def makeSubdomain():
        dxf_unit=1
     cell = cellView.cell
 #    copyInterceptedLayers(layoutView)
-    if not cell.name.startswith("Region"):
-       pya.MessageBox.info("Information", "Please select Subdomain Region", pya.MessageBox.Ok)
-       return
-    extractSubdomainDXF(cell.name,layoutView,dxf_unit)
-    create_3DSubdomain(cell.name,dxf_unit,mainLayout.dbu)
+    extractSubdomainDXF(REGI,layoutView,dxf_unit)
+    create_3DSubdomain(REGION_KEY,dxf_unit,mainLayout.dbu)
 
 def makeSubdomain2():
     import globalVar
