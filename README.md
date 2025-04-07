@@ -69,7 +69,7 @@ A minimal operation sequence is:
   * Open the gds file with the normal open command in Klayout File menu.
   * Use command Import Layout from layoutDD menu.
   * Use command New Region from layoutDD menu and fill the form with Zmin, Zmax values associated with the new subdomain.
-  * Select the new layer named "Region_1" which should be characterized by layernum/datatype=1/0 and a postfix @2 where @2 indicating that this layer belongs to partiton.gds. 
+  * Select the new layer named "Region_1" which should be characterized by layernum/datatype=1/0 and a postfix @2 indicating that this layer belongs to partiton.gds. 
   * Draw a closed polygon on the selected layer.
   * Use the command "Make Subdomain" from the layoutDD menu.
   * The project may be closed with the normal command "File/Close All" but it should be reopened, when needed, using the command "Open DD Prject" included 
