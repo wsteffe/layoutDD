@@ -12,6 +12,10 @@ for body in bodies:
   if body.Label.startswith("BC_"):
      col=(255.0,170.0,127.0)
      body.ViewObject.ShapeColor=col
+  if body.Label.startswith("WGP_"):
+     col=(255.0,0.0,0.0)
+     body.ViewObject.ShapeColor=col
+     body.ViewObject.Transparency=0
   if body.Label.startswith("DIEL_"):
      body.ViewObject.Transparency=80
   for item in body.Group:

@@ -86,23 +86,25 @@ class ZextentDialog(pya.QDialog):
       self.isRejected=True
       self.reject()
 
-def putOnDielBoundary(z):
+def putOnDielBoundary0(z):
     import globalVar
-    dist=1.e10
-    t=z
+    t=float(z)
     for k in globalVar.stack.keys():
        if len(globalVar.stack[k]) >3:
           [prefix,z0,z1,op,order]=globalVar.stack[k]
-          d=abs(float(z)-float(z0))
-          if d<dist:
-             t=z0
-             dist=d
-          d=abs(float(z)-float(z1))
-          if d<dist:
-             t=z1
-             dist=d
-    return t
+          if float(z)<=float(z0):
+             t=min(t,float(z0))
+    return str(t)
 
+def putOnDielBoundary1(z):
+    import globalVar
+    t=float(z)
+    for k in globalVar.stack.keys():
+       if len(globalVar.stack[k]) >3:
+          [prefix,z0,z1,op,order]=globalVar.stack[k]
+          if float(z)>=float(z1):
+             t=max(t,float(z1))
+    return str(t)
 
 def newRegion():
     import os
@@ -124,8 +126,8 @@ def newRegion():
     GUI_Klayout.exec_()
     if GUI_Klayout.isRejected:
         return
-    globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][0])
-    globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary(globalVar.partition_stack[REGION_KEY][1])
+    globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary0(globalVar.partition_stack[REGION_KEY][0])
+    globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary1(globalVar.partition_stack[REGION_KEY][1])
 
     partitionPath=globalVar.projectDir+"/partition"
     loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
@@ -179,22 +181,17 @@ def newWGP():
     GUI_Klayout.exec_()
     if GUI_Klayout.isRejected:
         return
+    globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary0(globalVar.partition_stack[REGION_KEY][0])
+    globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary1(globalVar.partition_stack[REGION_KEY][1])
     partitionPath=globalVar.projectDir+"/partition"
     loaders.saveStack(partitionPath+".stack",globalVar.partition_stack)
-    cellv_lid =cellLayout.layer(REGI,WGI)
-    cellv_lif =cellLayout.get_info(cellv_lid)
-    if cellv_lif.name!=REGION_KEY+'_'+WGP_KEY:
-       cellv_lif.name= REGION_KEY+'_'+WGP_KEY
-       cellLayout.set_info(cellv_lid,cellv_lif)
-       option       = pya.SaveLayoutOptions()
-       layoutView   = mainWindow.current_view()
-       layoutView.add_missing_layers()
-       saveActiveCell.saveActiveCell()
-
+    cellv_lif =pya.LayerInfo(REGI,WGI)
+    cellv_lif.name= REGION_KEY+'_'+WGP_KEY
+    cellv_lid =cellLayout.layer(cellv_lif)
     option       = pya.SaveLayoutOptions()
     layoutView   = mainWindow.current_view()
     layoutView.add_missing_layers()
-    layoutView.save_as(cellViewI,partitionPath+".gds", option)
+    saveActiveCell.saveActiveCell()
 
 
 def editRegion():
@@ -221,9 +218,8 @@ def editRegion():
     GUI_Klayout.exec_()
     if GUI_Klayout.isRejected:
         return
-#    print("Zstart : {0}".format(partition_stack[REGION_KEY][0])) 
-#    print("Zend : {0}".format(partition_stack[REGION_KEY][1]))         
-
+    globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary0(globalVar.partition_stack[REGION_KEY][0])
+    globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary1(globalVar.partition_stack[REGION_KEY][1])
     loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 
@@ -254,6 +250,8 @@ def editWGP():
     GUI_Klayout.exec_()
     if GUI_Klayout.isRejected:
         return
+    globalVar.partition_stack[REGION_KEY][0]=putOnDielBoundary0(globalVar.partition_stack[REGION_KEY][0])
+    globalVar.partition_stack[REGION_KEY][1]=putOnDielBoundary1(globalVar.partition_stack[REGION_KEY][1])
     loaders.saveStack(globalVar.projectDir+'/partition.stack',globalVar.partition_stack)
 
 def deleteLayerView(layoutView,cellViewId,lid):
@@ -787,7 +785,7 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
       if not k.startswith(regionName) or len(k.split('_'))<=3:
          continue
       lname=k[l+1:]
-      if lname not in stack.keys() and lname in layerNames and lname.startswith(regionName+"_WGP_"):
+      if lname not in stack.keys() and lname in layerNames and lname.startswith("WGP_"):
          op=None
          if globalVar.partition_stack[k][0]==globalVar.partition_stack[k][1]:
             op="hsurf"
