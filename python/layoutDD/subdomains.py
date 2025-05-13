@@ -702,7 +702,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
    from operator import itemgetter
    import FreeCAD
    import Part
-   import Import
    import globalVar
 #   homedir = os.path.expanduser("~")
 #   osType=platform.system()
@@ -715,7 +714,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
    def addPad(doc,profile,h):
        obj=doc.addObject('PartDesign::Pad','Pad')
        obj.Profile=profile
-       obj.NewSolid=True
        obj.Length = h
        obj.Direction = (0, 0, 1)
        obj.ReferenceAxis = None
@@ -725,8 +723,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
        obj.Reversed = False
        obj.Offset = 0
        obj.Visibility =True
-       obj.addProperty('App::PropertyBool', 'Group_EnableExport', 'Group')
-       obj.Group_EnableExport = True
        return obj
 
    def addPocket(doc,profile,h):
@@ -735,33 +731,22 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
        obj.Length = h
        obj.Reversed = True
        obj.Visibility =True
-       obj.addProperty('App::PropertyBool', 'Group_EnableExport', 'Group')
-       obj.Group_EnableExport = True
        return obj
 
    def addVSurf(doc,profile,h):
-       obj=doc.addObject('PartDesign::Extrusion','Extr')
-       obj.Profile=profile
-       obj.NewSolid=False
-       obj.Length = h
-       obj.Direction = (0, 0, 1)
-       obj.ReferenceAxis = None
-       obj.AlongSketchNormal = 0
-       obj.Type = 0
-       obj.UpToFace = None
+       obj=doc.addObject('Part::Extrusion','Extr')
+       obj.Base=profile
+       obj.LengthFwd = h
+       obj.Dir = (0, 0, 1)
+       obj.Solid = False
        obj.Reversed = False
-       obj.Offset = 0
        obj.Visibility =True
-       obj.addProperty('App::PropertyBool', 'Group_EnableExport', 'Group')
-       obj.Group_EnableExport = True
        return obj
 
    def addHSurf(doc,profile):
        obj=FCdoc.addObject('PartDesign::SubShapeBinder','Binder')
        obj.Support=profile
        obj.Visibility =True
-       obj.addProperty('App::PropertyBool', 'Group_EnableExport', 'Group')
-       obj.Group_EnableExport = True
        return obj
 
    subdomain_path=globalVar.projectDir+"/Subdomains/"+regionName
@@ -799,8 +784,7 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
    if 'scale' in stack.keys():
         stack_scale=float(stack['scale'][0])
 
-   FCdoc=new_FCdocument(subdomain_path)
-   paramPath = "User parameter:BaseApp/Preferences/Mod/layoutDD"
+   paramPath = "User parameter:BaseApp/Preferences/Mod/Draft"
    params = FreeCAD.ParamGet(paramPath)
    params.SetBool('groupLayers', True)
    params.SetBool('connectEdges', True)
@@ -808,8 +792,14 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
    FC_unit=1.e3   #expressed in um
    dxfScaling=float(dxf_unit*1.e-6) #dxfScaling = dxf_unit converted in meters
    params.SetFloat('dxfScaling', dxfScaling)
-   Import.readDXF(subdomain_path+".dxf", option_source=paramPath)
-   FClayers = FCdoc.Objects
+
+   import importDXF
+   FCdoc=importDXF.open(subdomain_path+".dxf")
+   FCdoc.saveAs(subdomain_path+'.FCStd')
+   if hasattr(Part, 'disableElementMapping'):
+        Part.disableElementMapping(FCdoc)
+   FCdoc.UndoMode = 0
+
    partName = os.path.basename(subdomain_path)
    if not partName.startswith('CMP_'):
        partName='CMP_'+partName
@@ -829,10 +819,16 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
 
    layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
 
+   for obj in FCdoc.Objects:
+      if obj.Label=="Layers":
+         FClayers = obj.Group
+         break
+
    FClayerShapeFromName={}
    for layer in FClayers:
-      FClayerShapeFromName[layer.Name.removeprefix("ENTITIES_")]=layer.Shape
-      FCdoc.removeObject(layer.Name)
+      FClayerShapeFromName[layer.Label]=Part.Compound([obj.Shape for obj in layer.Group])
+#      FCdoc.removeObject(layer.Name)
+
    FCclipShape = FClayerShapeFromName["ClippingPolygon"]
    if not FCclipShape.Edges:
       return
@@ -874,14 +870,13 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
          if not FClayerShape.Edges:
            continue
          if prefix:
-           layerBody=FCdoc.addObject("PartDesign::Body",prefix+"_"+lname)
-           layerBody.Label=prefix+"_"+lname
+           layerGroup=FCdoc.addObject("App::DocumentObjectGroup",prefix+"_"+lname)
+           layerGroup.Label=prefix+"_"+lname
          else:
-           layerBody=FCdoc.addObject("PartDesign::Body",lname)
-           layerBody.Label=lname
-         layerBody.Visibility = True
-         layerBody.ExportMode = 'Child Query'
-         part.addObject(layerBody)
+           layerGroup=FCdoc.addObject("App::DocumentObjectGroup",lname)
+           layerGroup.Label=lname
+         layerGroup.Visibility = True
+         part.addObject(layerGroup)
          face=Part.Face(contWire)
          i=0
          edges=FCdoc.addObject('PartDesign::Feature', f'{lname}_edges')
@@ -889,10 +884,10 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
          edges.Shape = Part.Compound([e.common(face) for e in FClayerShape.Edges])
          edges.Placement=layerPlacement
          edges.recompute()
-         layerBody.addObject(edges)
+         layerGroup.addObject(edges)
          extr=addVSurf(FCdoc,edges,(z1i-z0i)*stack_scale)
          extr.Label = f'{lname}_surf'
-         layerBody.addObject(extr)
+         layerGroup.addObject(extr)
       elif opi=='add' or opi=='ins':
          useAllClipPoly=not hasFClayerEdges and prefix=="DIEL"
          if globalVar.mergedLayersInDXF:
@@ -908,7 +903,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
            layerBody=FCdoc.addObject("App::Part",lname)
            layerBody.Label=lname
          layerBody.Visibility = True
-         layerBody.ExportMode = 'Child Query'
          part.addObject(layerBody)
          fwires=[]
          for f in layerFaces:
@@ -932,14 +926,13 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
          if not layerFaces:
            continue
          if prefix:
-           layerBody=FCdoc.addObject("PartDesign::Body",prefix+"_"+lname)
-           layerBody.Label=prefix+"_"+lname
+           layerGroup=FCdoc.addObject("App::DocumentObjectGroup",prefix+"_"+lname)
+           layerGroup.Label=prefix+"_"+lname
          else:
-           layerBody=FCdoc.addObject("App::Part",lname)
-           layerBody.Label=lname
-         layerBody.Visibility = True
-         layerBody.ExportMode = 'Child Query'
-         part.addObject(layerBody)
+           layerGroup=FCdoc.addObject("App::Part",lname)
+           layerGroup.Label=lname
+         layerGroup.Visibility = True
+         part.addObject(layerGroup)
          fwires=[]
          for f in layerFaces:
             for w in f.Wires:
@@ -949,10 +942,10 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
          wires.Shape=Part.Compound(fwires)
          wires.Placement=layerPlacement
          wires.recompute()
-         layerBody.addObject(wires)
+         layerGroup.addObject(wires)
          surf=addHSurf(FCdoc,wires)
          surf.Label = f'{lname}_surf'
-         layerBody.addObject(surf)
+         layerGroup.addObject(surf)
       FCdoc.recompute()
       if opi=='ins' or opi=='cut' and shapeType=="solid":
            tool=None
@@ -976,14 +969,7 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
                  if not objs:
                    continue
                  layerBodyj=objs[0]
-                 if opj=='vsurf' or opj=='hsurf':
-                    shapeTypej="surf"
-                 elif opj=='add' or opj=='ins':
-                    shapeTypej="solid"
-                 else:
-                    continue
                  cutted=layerBodyj.Tip
-                 cutted.Group_EnableExport = False
                  if useBooleanFeature:
                     cuttedRef=FCdoc.addObject('PartDesign::SubShapeBinder','ShepeBinder')
                     cuttedRef.Support=cutted
