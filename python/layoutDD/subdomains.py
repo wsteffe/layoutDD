@@ -976,12 +976,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
                  if not objs:
                    continue
                  layerBodyj=objs[0]
-                 if opj=='vsurf' or opj=='hsurf':
-                    shapeTypej="surf"
-                 elif opj=='add' or opj=='ins':
-                    shapeTypej="solid"
-                 else:
-                    continue
                  cutted=layerBodyj.Tip
                  cutted.Group_EnableExport = False
                  if useBooleanFeature:
