@@ -694,7 +694,6 @@ def makeLayerFaces2(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPol
     layerFaces=mergeLayerFaces(layerFaces)
     return layerFaces
 
-useBooleanFeature=True
 
 def create_3DSubdomain(regionName,dxf_unit,db_unit):  
    import ezdxf
@@ -711,43 +710,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
 #      FCuserConfigPath = homedir + "/.config/FreeCAD/user.cfg"
 
 
-   def addPad(doc,profile,h):
-       obj=doc.addObject('PartDesign::Pad','Pad')
-       obj.Profile=profile
-       obj.Length = h
-       obj.Direction = (0, 0, 1)
-       obj.ReferenceAxis = None
-       obj.AlongSketchNormal = 0
-       obj.Type = 0
-       obj.UpToFace = None
-       obj.Reversed = False
-       obj.Offset = 0
-       obj.Visibility =True
-       return obj
-
-   def addPocket(doc,profile,h):
-       obj=doc.addObject('PartDesign::Pocket','Pocket')
-       obj.Profile=profile
-       obj.Length = h
-       obj.Reversed = True
-       obj.Visibility =True
-       return obj
-
-   def addVSurf(doc,profile,h):
-       obj=doc.addObject('Part::Extrusion','Extr')
-       obj.Base=profile
-       obj.LengthFwd = h
-       obj.Dir = (0, 0, 1)
-       obj.Solid = False
-       obj.Reversed = False
-       obj.Visibility =True
-       return obj
-
-   def addHSurf(doc,profile):
-       obj=FCdoc.addObject('PartDesign::SubShapeBinder','Binder')
-       obj.Support=profile
-       obj.Visibility =True
-       return obj
 
    subdomain_path=globalVar.projectDir+"/Subdomains/"+regionName
 
@@ -794,12 +756,17 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
    params.SetFloat('dxfScaling', dxfScaling)
 
    import importDXF
-   FCdoc=importDXF.open(subdomain_path+".dxf")
-   FCdoc.saveAs(subdomain_path+'.FCStd')
-   if hasattr(Part, 'disableElementMapping'):
-        Part.disableElementMapping(FCdoc)
-   FCdoc.UndoMode = 0
+   inFCdoc=importDXF.open(subdomain_path+".dxf")
+   for obj in inFCdoc.Objects:
+      if obj.Label=="Layers":
+         FClayers = obj
+         break
+   FClayerShapeFromName={}
+   for layer in FClayers.Group:
+      FClayerShapeFromName[layer.Label]=Part.Compound([obj.Shape for obj in layer.Group])
+   FreeCAD.closeDocument(inFCdoc.Name)
 
+   FCdoc=new_FCdocument(subdomain_path)
    partName = os.path.basename(subdomain_path)
    if not partName.startswith('CMP_'):
        partName='CMP_'+partName
@@ -818,16 +785,6 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
               layer_order_and_name.append((stack[lname][4],lname))
 
    layer_order_and_name=sorted(layer_order_and_name, key=itemgetter(0))
-
-   for obj in FCdoc.Objects:
-      if obj.Label=="Layers":
-         FClayers = obj.Group
-         break
-
-   FClayerShapeFromName={}
-   for layer in FClayers:
-      FClayerShapeFromName[layer.Label]=Part.Compound([obj.Shape for obj in layer.Group])
-#      FCdoc.removeObject(layer.Name)
 
    FCclipShape = FClayerShapeFromName["ClippingPolygon"]
    if not FCclipShape.Edges:
@@ -867,27 +824,25 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
       comp=None
       if opi=='vsurf':
          contWire=Part.Wire(FCclipShape.Edges)
+         if not FClayerShape:
+           continue
          if not FClayerShape.Edges:
            continue
          if prefix:
-           layerGroup=FCdoc.addObject("App::DocumentObjectGroup",prefix+"_"+lname)
-           layerGroup.Label=prefix+"_"+lname
+           layerComp=FCdoc.addObject("Part::Feature",prefix+"_"+lname)
+           layerComp.Label=prefix+"_"+lname
          else:
-           layerGroup=FCdoc.addObject("App::DocumentObjectGroup",lname)
-           layerGroup.Label=lname
-         layerGroup.Visibility = True
-         part.addObject(layerGroup)
-         face=Part.Face(contWire)
-         i=0
-         edges=FCdoc.addObject('PartDesign::Feature', f'{lname}_edges')
-         edges.Label = f'{lname}_edges'
-         edges.Shape = Part.Compound([e.common(face) for e in FClayerShape.Edges])
-         edges.Placement=layerPlacement
-         edges.recompute()
-         layerGroup.addObject(edges)
-         extr=addVSurf(FCdoc,edges,(z1i-z0i)*stack_scale)
-         extr.Label = f'{lname}_surf'
-         layerGroup.addObject(extr)
+           layerComp=FCdoc.addObject("Part::Feature",lname)
+           layerComp.Label=lname
+         layerComp.Visibility = True
+         part.addObject(layerComp)
+         contFace=Part.Face(contWire)
+         edges =[e.common(contFace) for e in FClayerShape.Edges]
+         surfaces=[]
+         for e in edges:
+            surfaces.append(e.extrude(FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)))
+         layerComp.Shape=Part.Compound(surfaces)
+         layerComp.Placement=layerPlacement
       elif opi=='add' or opi=='ins':
          useAllClipPoly=not hasFClayerEdges and prefix=="DIEL"
          if globalVar.mergedLayersInDXF:
@@ -897,27 +852,20 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
          if not layerFaces:
            continue
          if prefix:
-           layerBody=FCdoc.addObject("PartDesign::Body",prefix+"_"+lname)
-           layerBody.Label=prefix+"_"+lname
+           layerComp=FCdoc.addObject("Part::Feature",prefix+"_"+lname)
+           layerComp.Label=prefix+"_"+lname
          else:
-           layerBody=FCdoc.addObject("App::Part",lname)
-           layerBody.Label=lname
-         layerBody.Visibility = True
-         part.addObject(layerBody)
-         fwires=[]
+           layerComp=FCdoc.addObject("Part::Feature",lname)
+           layerComp.Label=lname
+         layerComp.Visibility = True
+         part.addObject(layerComp)
+         solids=[]
          for f in layerFaces:
-            for w in f.Wires:
-               fwires.append(w)
-         wires=FCdoc.addObject('PartDesign::Feature', f'{lname}_wires')
-         wires.Label = f'{lname}_wires'
-         wires.Shape=Part.Compound(fwires)
-         wires.Placement=layerPlacement
-         wires.recompute()
-         layerBody.addObject(wires)
-         pad=addPad(FCdoc,wires,(z1i-z0i)*stack_scale)
-         pad.Label = f'{lname}_solid'
-         layerBody.addObject(pad)
-      else:
+            solids.append(f.extrude(FreeCAD.Vector(0,0,(z1i-z0i)*stack_scale)))
+         layerComp.Shape=Part.Compound(solids)
+         layerComp.Placement=layerPlacement
+         layerComp.recompute()
+      elif opi=='hsurf':
          useAllClipPoly=not hasFClayerEdges
          if globalVar.mergedLayersInDXF:
            layerFaces=makeLayerFaces1(lname,FCclipShape,FClayerShape,FC_unit,db_unit,useAllClipPoly)
@@ -926,33 +874,23 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
          if not layerFaces:
            continue
          if prefix:
-           layerGroup=FCdoc.addObject("App::DocumentObjectGroup",prefix+"_"+lname)
-           layerGroup.Label=prefix+"_"+lname
+           layerComp=FCdoc.addObject("Part::Feature",prefix+"_"+lname)
+           layerComp.Label=prefix+"_"+lname
          else:
-           layerGroup=FCdoc.addObject("App::Part",lname)
-           layerGroup.Label=lname
-         layerGroup.Visibility = True
-         part.addObject(layerGroup)
-         fwires=[]
+           layerComp=FCdoc.addObject("Part::Feature",lname)
+           layerComp.Label=lname
+         part.addObject(layerComp)
+         layerComp.Visibility = True
+         surfaces=[]
          for f in layerFaces:
-            for w in f.Wires:
-               fwires.append(w)
-         wires=FCdoc.addObject('PartDesign::Feature', f'{lname}_wires')
-         wires.Label = f'{lname}_wires'
-         wires.Shape=Part.Compound(fwires)
-         wires.Placement=layerPlacement
-         wires.recompute()
-         layerGroup.addObject(wires)
-         surf=addHSurf(FCdoc,wires)
-         surf.Label = f'{lname}_surf'
-         layerGroup.addObject(surf)
+            surfaces.append(f)
+         layerComp.Shape=Part.Compound(surfaces)
       FCdoc.recompute()
       if opi=='ins' or opi=='cut' and shapeType=="solid":
            tool=None
-           if useBooleanFeature:
-              objs =FCdoc.getObjectsByLabel(lname+"_solid")
-              if objs:
-                  tool=objs[0]
+           objs =FCdoc.getObjectsByLabel(prefix+"_"+lname)
+           if objs:
+               tool=objs[0]
            for (lorderj,lnamej) in layer_order_and_name:
               if lorderj==lorder:
                  break
@@ -968,28 +906,8 @@ def create_3DSubdomain(regionName,dxf_unit,db_unit):
                    objs =FCdoc.getObjectsByLabel(lnamej)
                  if not objs:
                    continue
-                 layerBodyj=objs[0]
-                 cutted=layerBodyj.Tip
-                 if useBooleanFeature:
-                    cuttedRef=FCdoc.addObject('PartDesign::SubShapeBinder','ShepeBinder')
-                    cuttedRef.Support=cutted
-                    cuttedRef.Label="Reference("+cutted.Label+")"
-                    layerBodyj.addObject(cuttedRef)
-                    toolRef=FCdoc.addObject('PartDesign::SubShapeBinder','ShepeBinder')
-                    toolRef.Support=tool
-                    toolRef.Label="Reference("+tool.Label+")"
-                    layerBodyj.addObject(toolRef)
-                    booleanCut=FCdoc.addObject('PartDesign::Boolean','BooleanCut')
-                    booleanCut.Type =1
-                    booleanCut.Label=lnamej+"_cut"
-                    booleanCut.setObjects([cuttedRef,toolRef])
-                    booleanCut.addProperty('App::PropertyBool', 'Group_EnableExport', 'Group')
-                    booleanCut.Group_EnableExport = True
-                    layerBodyj.addObject(booleanCut)
-                 else:
-                    pocket=addPocket(FCdoc,wires1,(z1i-z0i)*stack_scale)
-                    pocket.Label="Pocket_"+lnamej+"_"+lname
-                    layerBodyj.addObject(pocket)
+                 layerCompj=objs[0]
+                 layerCompj.Shape=layerCompj.Shape.cut(tool.Shape)
            FCdoc.recompute()
    for doc in FCdoc.getDependentDocuments():
         doc.save();
