@@ -24,7 +24,7 @@ if not libPath in sys.path:
    sys.path.append(libPath)
 
 if sys.platform=="win32":
-  FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "../../../../AppData/Roaming/layoutDD_FreeCAD"))
+  FCdir=os.path.realpath(os.path.join(os.path.dirname(__file__), "../../../../AppData/Roaming/KLayout"))
   FCbinPath =os.path.realpath(FCdir+"/bin")
   if not FCbinPath in sys.path:
      sys.path.append(FCbinPath)

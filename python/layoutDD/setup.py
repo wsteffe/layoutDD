@@ -34,7 +34,7 @@ def installFreeCAD_():
 
 def installFreeCAD():
     import tempfile,requests,os,zipfile
-    zipurl="https://github.com/wsteffe/layoutDD_FreeCAD/archive/refs/tags/v0.1.zip"
+    zipurl="https://github.com/wsteffe/klayout_FreeCAD/archive/refs/tags/v1.0.zip"
     username = os.getenv("USERNAME")
     installPath="c:/users/"+username+"/AppData/Roaming/"
     zip_path=None
@@ -47,7 +47,11 @@ def installFreeCAD():
                  tmpf.write(chunk)
     with zipfile.ZipFile(zip_path, "r") as f:
        f.extractall(installPath)
-    os.rename(installPath+"layoutDD_FreeCAD-0.1",installPath+"layoutDD_FreeCAD")
+    os.rename(installPath+"klayout_FreeCAD-1.0/bin",installPath+"KLayout/bin")
+    os.rename(installPath+"klayout_FreeCAD-1.0/Ext",installPath+"KLayout/Ext")
+    os.rename(installPath+"klayout_FreeCAD-1.0/Mod",installPath+"KLayout/Mod")
+    os.remove(installPath+"klayout_FreeCAD-1.0/*")
+    os.rmdir(installPath+"klayout_FreeCAD-1.0")
     os.remove(zip_path)
 
 def registerToolbarItems():
