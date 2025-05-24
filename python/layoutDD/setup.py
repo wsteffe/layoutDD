@@ -1,6 +1,13 @@
 import pya
 import sys
 
+if sys.platform=="win32":
+  import os
+  username = os.getenv("USERNAME")
+  sys.path.append("c:/users/"+username+"/AppData/Roaming/KLayout/bin")
+  sys.path.append("c:/users/"+username+"/AppData/Roaming/KLayout/Mod")
+  sys.path.append("c:/users/"+username+"/AppData/Roaming/KLayout/dxflib")
+
 ACTIONS = []
 layerMap=None
 
@@ -34,7 +41,7 @@ def installFreeCAD_():
 
 def installFreeCAD():
     import tempfile,requests,os,zipfile
-    zipurl="https://github.com/wsteffe/klayout_FreeCAD/archive/refs/tags/v1.0.zip"
+    zipurl="https://github.com/wsteffe/klayout_FreeCAD/archive/refs/tags/v1.0.1.zip"
     username = os.getenv("USERNAME")
     installPath="c:/users/"+username+"/AppData/Roaming/"
     zip_path=None
@@ -47,11 +54,14 @@ def installFreeCAD():
                  tmpf.write(chunk)
     with zipfile.ZipFile(zip_path, "r") as f:
        f.extractall(installPath)
-    os.rename(installPath+"klayout_FreeCAD-1.0/bin",installPath+"KLayout/bin")
-    os.rename(installPath+"klayout_FreeCAD-1.0/Ext",installPath+"KLayout/Ext")
-    os.rename(installPath+"klayout_FreeCAD-1.0/Mod",installPath+"KLayout/Mod")
-    os.remove(installPath+"klayout_FreeCAD-1.0/*")
-    os.rmdir(installPath+"klayout_FreeCAD-1.0")
+    import shutil
+    shutil.copytree(installPath+"klayout_FreeCAD-1.0.1/bin", installPath+"KLayout/bin", dirs_exist_ok=True)
+    shutil.copytree(installPath+"klayout_FreeCAD-1.0.1/lib", installPath+"KLayout/lib", dirs_exist_ok=True)
+    shutil.copytree(installPath+"klayout_FreeCAD-1.0.1/share", installPath+"KLayout/share", dirs_exist_ok=True)
+    shutil.copytree(installPath+"klayout_FreeCAD-1.0.1/Mod", installPath+"KLayout/Mod", dirs_exist_ok=True)
+    shutil.copytree(installPath+"klayout_FreeCAD-1.0.1/Ext", installPath+"KLayout/Ext", dirs_exist_ok=True)
+    shutil.copytree(installPath+"klayout_FreeCAD-1.0.1/dxflib", installPath+"KLayout/dxflib", dirs_exist_ok=True)
+    shutil.rmtree(installPath+"klayout_FreeCAD-1.0.1")
     os.remove(zip_path)
 
 def registerToolbarItems():
